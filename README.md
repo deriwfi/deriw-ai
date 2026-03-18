@@ -1,61 +1,143 @@
-# DERIW DEX — Claude Code Skill
+# DERIW DEX — AI Coding Skill
 
-一个用于 [DERIW DEX](https://deriw.com) 链上操作的 Claude Code Skill，支持开仓/平仓、限价单、资金池、跨链充提等操作。底层脚本基于 **ethers.js v6**，同时支持线上网络和开发网（`DEV=true`）。
+An AI Coding Skill for on-chain operations on [DERIW DEX](https://deriw.com), supporting open/close positions, limit orders, fund pools, cross-chain deposits/withdrawals, and more. The underlying scripts are based on **ethers.js v6** and support both production network and devnet (`DEV=true`).
+
+Supports **Claude Code**, **OpenClaw**, **Gemini CLI**, and **Codex**.
 
 ---
 
-## 安装
+## Installation
 
-### 1. 前置条件
+> **Prerequisite for all platforms**: Node.js 18+ must be installed for running on-chain scripts.
 
-- [Claude Code](https://github.com/anthropics/claude-code) 已安装
-- Node.js 18+（用于运行链上脚本）
-
-### 2. 克隆到 Claude Code 用户命令目录
+### Claude Code
 
 ```bash
-# 进入 Claude Code 用户命令目录（自动对所有项目生效）
+# Global (available across all projects)
 cd ~/.claude/commands
-
-# 克隆仓库，将 skill 放到 deriw/ 子目录
-git clone <repo-url> deriw
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
 ```
 
-或者放到项目级命令目录（仅对当前项目生效）：
-
 ```bash
+# Project-level (current project only)
 cd <your-project>/.claude/commands
-git clone <repo-url> deriw
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
 ```
 
-### 3. 安装依赖
-
-```bash
-cd ~/.claude/commands/deriw   # 或项目级路径
-npm install
-```
-
-### 4. 验证安装
-
-在任意项目中打开 Claude Code，输入：
+Invoke via slash command:
 
 ```
-/deriw 查询一下 BTC 当前价格
+/deriw query the current BTC price
 ```
 
 ---
 
-## 使用方式
-
-在 Claude Code 中通过 `/deriw <描述>` 触发，用自然语言描述操作意图即可。
-
-所有链上脚本均通过 `PRIVATE_KEY` 环境变量读取私钥，在运行前 export：
+### OpenClaw
 
 ```bash
-export PRIVATE_KEY=0x你的私钥
+# Global (available across all agents)
+cd ~/.openclaw/skills
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
 ```
 
-使用开发网时额外加上 `DEV=true`：
+```bash
+# Project-level (current workspace only)
+cd <your-workspace>/skills
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
+```
+
+OpenClaw auto-discovers skills on next session. Describe your intent naturally or use the slash command:
+
+```
+/deriw query the current BTC price
+```
+
+To add extra skill directories, configure `skills.load.extraDirs` in `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "skills": {
+    "load": {
+      "extraDirs": ["/path/to/custom/skills"]
+    }
+  }
+}
+```
+
+---
+
+### Gemini CLI
+
+```bash
+# Global (available across all projects)
+mkdir -p ~/.gemini/skills
+cd ~/.gemini/skills
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
+```
+
+```bash
+# Project-level (current project only)
+mkdir -p .gemini/skills
+cd .gemini/skills
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
+```
+
+Gemini CLI is model-invoked — describe your intent and the model automatically activates the skill via `activate_skill`. No slash command needed:
+
+```
+Deposit 100 USDT into the DERIW fund pool
+```
+
+---
+
+### Codex
+
+```bash
+# Global — Codex scans ~/.agents/skills/ at startup
+mkdir -p ~/.agents/skills
+cd ~/.agents/skills
+git clone https://github.com/deriwfi/deriw-ai deriw
+cd deriw && npm install
+```
+
+Codex auto-discovers skills in `~/.agents/skills/` at startup. Describe your intent naturally or mention the skill by name:
+
+```
+Open a BTC long with 100 USDT margin on DERIW
+```
+
+To uninstall, remove the directory:
+
+```bash
+rm -rf ~/.agents/skills/deriw
+```
+
+---
+
+## Usage
+
+Describe your intent in natural language. Each platform has a slightly different invocation method:
+
+| Platform | Invocation | Example |
+|---|---|---|
+| Claude Code | `/deriw <description>` | `/deriw open BTC long` |
+| OpenClaw | `/deriw <description>` | `/deriw query ETH price` |
+| Gemini CLI | Describe naturally (model-invoked) | `Withdraw 50 USDT to Arbitrum` |
+| Codex | Describe naturally (model-invoked) | `Close my BTC position on DERIW` |
+
+All on-chain scripts read the private key via the `PRIVATE_KEY` environment variable. Export it before running:
+
+```bash
+export PRIVATE_KEY=0xyour_private_key
+```
+
+For devnet, additionally set `DEV=true`:
 
 ```bash
 export DEV=true
@@ -63,16 +145,16 @@ export DEV=true
 
 ---
 
-## 功能速览
+## Feature Overview
 
-### 查询
+### Query
 
 ```
-/deriw 查询 0xAbc... 的 BTC 多仓位
-/deriw 查询当前 ETH 价格
+/deriw query BTC long position for 0xAbc...
+/deriw query current ETH price
 ```
 
-对应脚本：
+Corresponding script:
 
 ```bash
 DEV=true node scripts/query-position.js <account> <indexToken> <isLong>
@@ -80,51 +162,51 @@ DEV=true node scripts/query-position.js <account> <indexToken> <isLong>
 
 ---
 
-### 市价开仓 / 平仓
+### Market Open / Close
 
 ```
-/deriw 用 100 USDT 保证金，开 BTC 10 倍多仓，仓位大小 1000 USD
-/deriw 平掉我的 BTC 多仓
+/deriw open BTC 10x long with 100 USDT margin, position size 1000 USD
+/deriw close my BTC long position
 ```
 
-对应脚本：
+Corresponding scripts:
 
 ```bash
-# 开仓
+# Open
 PRIVATE_KEY=xxx node scripts/create-market-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong>
 
-# 平仓
+# Close
 PRIVATE_KEY=xxx node scripts/create-market-close.js <indexToken> <sizeDelta_usd> <isLong>
 ```
 
 ---
 
-### 限价开仓 / 平仓
+### Limit Open / Close
 
 ```
-/deriw BTC 跌到 80000 时开多 1000 USD
-/deriw 挂一个 BTC 涨到 100000 的止盈单
+/deriw open BTC long 1000 USD when price drops to 80000
+/deriw place a BTC take-profit order at 100000
 ```
 
-对应脚本：
+Corresponding scripts:
 
 ```bash
-# 限价开仓
+# Limit open
 PRIVATE_KEY=xxx node scripts/create-limit-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>
 
-# 限价平仓
+# Limit close
 PRIVATE_KEY=xxx node scripts/create-limit-close.js <indexToken> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>
 ```
 
 ---
 
-### 资金池存入
+### Fund Pool Deposit
 
 ```
-/deriw 存 100 USDT 到资金池
+/deriw deposit 100 USDT into fund pool
 ```
 
-对应脚本（`pid` 从 API 或合约 `currPeriodID` 获取）：
+Corresponding script (`pid` obtained from API or contract `currPeriodID`):
 
 ```bash
 DEV=true PRIVATE_KEY=xxx node scripts/fund-deposit.js <poolAddress> <pid> <amount_usdt>
@@ -132,65 +214,65 @@ DEV=true PRIVATE_KEY=xxx node scripts/fund-deposit.js <poolAddress> <pid> <amoun
 
 ---
 
-### 跨链充值（Arbitrum → DERIW 链）
+### Cross-Chain Deposit (Arbitrum → DERIW Chain)
 
 ```
-/deriw 从 Arbitrum 充值 100 USDT 到 DERIW 链
+/deriw deposit 100 USDT from Arbitrum to DERIW Chain
 ```
 
-对应脚本（需在 Arbitrum 网络运行）：
+Corresponding script (must run on Arbitrum network):
 
 ```bash
-# 线上
+# Production
 PRIVATE_KEY=xxx node scripts/crosschain-deposit.js <amount_usdt>
 
-# 开发网（Arbitrum Sepolia）
+# Devnet (Arbitrum Sepolia)
 DEV=true PRIVATE_KEY=xxx node scripts/crosschain-deposit.js <amount_usdt>
 ```
 
 ---
 
-### 跨链提现（DERIW 链 → Arbitrum）
+### Cross-Chain Withdrawal (DERIW Chain → Arbitrum)
 
 ```
-/deriw 提现 50 USDT 到 Arbitrum
+/deriw withdraw 50 USDT to Arbitrum
 ```
 
-对应脚本（在 DERIW 链上运行）：
+Corresponding script (runs on DERIW Chain):
 
 ```bash
-# 线上
+# Production
 PRIVATE_KEY=xxx node scripts/crosschain-withdraw.js <amount_usdt>
 
-# 开发网
+# Devnet
 DEV=true PRIVATE_KEY=xxx node scripts/crosschain-withdraw.js <amount_usdt>
 ```
 
 ---
 
-## 网络配置
+## Network Configuration
 
-| 网络 | RPC | Chain ID |
+| Network | RPC | Chain ID |
 |---|---|---|
-| DERIW 链（线上）| `https://rpc.deriw.com` | `2885` |
-| DERIW Dev 链 | `https://rpc.dev.deriw.com` | — |
-| Arbitrum（线上）| `https://arb1.arbitrum.io/rpc` | `42161` |
-| Arbitrum Sepolia（开发网）| `https://rpc-arbitrum-sepolia.deriw.com` | `421614` |
+| DERIW Chain (Production) | `https://rpc.deriw.com` | `2885` |
+| DERIW Dev Chain | `https://rpc.dev.deriw.com` | `18417507517` |
+| Arbitrum (Production) | `https://arb1.arbitrum.io/rpc` | `42161` |
+| Arbitrum Sepolia (Devnet) | `https://rpc-arbitrum-sepolia.deriw.com` | `421614` |
 
 ---
 
-## 参考文档
+## Reference Documentation
 
-- [`references/addresses.md`](references/addresses.md) — 完整合约地址 + 代币地址
-- [`references/contracts.md`](references/contracts.md) — 合约方法说明
-- [`references/api.md`](references/api.md) — HTTP API 文档
-- [`scripts/`](scripts/) — 可直接运行的 ethers.js v6 脚本（8 个）
-- [`assets/`](assets/) — 合约 ABI JSON 文件
+- [`references/addresses.md`](references/addresses.md) — Full contract addresses + token addresses
+- [`references/contracts.md`](references/contracts.md) — Contract method descriptions
+- [`references/api.md`](references/api.md) — HTTP API documentation
+- [`scripts/`](scripts/) — Ready-to-run ethers.js v6 scripts (8 total)
+- [`assets/`](assets/) — Contract ABI JSON files
 
 ---
 
-## 注意事项
+## Notes
 
-- **私钥安全**：`PRIVATE_KEY` 仅通过环境变量传入，请勿写入任何文件
-- **开发网**：加 `DEV=true` 切换到测试网，开发网 `gasPrice=0`，无需 ETH
-- **跨链到账时间**：充值 5-15 分钟，提现 15-60 分钟（Arbitrum 确认）
+- **Private key security**: `PRIVATE_KEY` is only passed via environment variable, never write it to any file
+- **Devnet**: Add `DEV=true` to switch to testnet; devnet has `gasPrice=0`, no ETH required
+- **Cross-chain arrival time**: Deposits 5-15 minutes, withdrawals 15-60 minutes (Arbitrum confirmation)

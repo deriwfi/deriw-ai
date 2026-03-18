@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * 资金池存入（FundRouterV2.deposit）
- * 用法: node fund-deposit.js <poolAddress> <pid> <amount_usdt>
- * pid: 期数 ID，从 GET https://api.deriw.com/client/foundpool/lists 获取，或用 PoolDataV2.currPeriodID(pool) 查询
- * 环境变量: PRIVATE_KEY（必填）, DEV=true（开发网）, DERIW_RPC_URL（覆盖默认 RPC）
+ * Fund pool deposit (FundRouterV2.deposit)
+ * Usage: node fund-deposit.js <poolAddress> <pid> <amount_usdt>
+ * pid: Period ID, get from GET https://api.deriw.com/client/foundpool/lists or query PoolDataV2.currPeriodID(pool)
+ * Environment variables: PRIVATE_KEY (required), DEV=true (devnet), DERIW_RPC_URL (override default RPC)
  */
 const { ethers } = require('ethers');
 const FundRouterV2ABI = require('../assets/FundRouterV2.json');
@@ -19,10 +19,10 @@ const RPC_URL      = process.env.DERIW_RPC_URL || (IS_DEV ? 'https://rpc.dev.der
 async function main() {
   const [poolAddress, pidStr, amountStr] = process.argv.slice(2);
   if (!poolAddress || !pidStr || !amountStr) {
-    console.error('用法: node fund-deposit.js <poolAddress> <pid> <amount_usdt>');
+    console.error('Usage: node fund-deposit.js <poolAddress> <pid> <amount_usdt>');
     process.exit(1);
   }
-  if (!process.env.PRIVATE_KEY) { console.error('需要设置 PRIVATE_KEY'); process.exit(1); }
+  if (!process.env.PRIVATE_KEY) { console.error('PRIVATE_KEY is required'); process.exit(1); }
 
   const pid    = BigInt(pidStr);
   const amount = ethers.parseUnits(amountStr, 6);
@@ -34,20 +34,20 @@ async function main() {
   const usdt     = new ethers.Contract(USDT, IERC20ABI, wallet);
 
   const currPid = await poolData.currPeriodID(poolAddress);
-  console.log(`池子当前期数: ${currPid}，目标期数: ${pid}`);
+  console.log(`Pool current period: ${currPid}, target period: ${pid}`);
 
   const gasOpts = IS_DEV ? { gasPrice: 0n } : {};
 
   const allowance = await usdt.allowance(wallet.address, FUND_ROUTER);
   if (allowance < amount) {
-    console.log('授权 USDT...');
+    console.log('Approving USDT...');
     await (await usdt.approve(FUND_ROUTER, ethers.MaxUint256, gasOpts)).wait();
   }
 
-  console.log(`存入资金池: pool=${poolAddress}, pid=${pid}, amount=${amountStr} USDT`);
+  console.log(`Depositing to fund pool: pool=${poolAddress}, pid=${pid}, amount=${amountStr} USDT`);
   const tx = await router.deposit(poolAddress, pid, amount, false, gasOpts);
   const receipt = await tx.wait();
-  console.log('存入成功，txHash:', receipt.hash);
+  console.log('Deposit successful, txHash:', receipt.hash);
 }
 
 main().catch(e => { console.error(e.message); process.exit(1); });

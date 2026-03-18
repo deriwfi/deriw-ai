@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * 限价开仓（OrderBook.createIncreaseOrder）
- * 用法: node create-limit-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>
- * triggerAbove: true=价格高于触发（空单突破开仓），false=价格低于触发（多单回调开仓）
- * 环境变量: DERIW_RPC_URL, PRIVATE_KEY（必填）
+ * Limit open (OrderBook.createIncreaseOrder)
+ * Usage: node create-limit-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>
+ * triggerAbove: true=trigger when price breaks above (short breakout open), false=trigger when price drops below (long pullback open)
+ * Environment variables: DERIW_RPC_URL, PRIVATE_KEY (required)
  */
 const { ethers } = require('ethers');
 const OrderBookABI = require('../assets/OrderBook.json');
@@ -18,17 +18,17 @@ async function main() {
   const [indexToken, amountInStr, sizeDeltaStr, isLongStr, triggerPriceStr, triggerAboveStr] = process.argv.slice(2);
 
   if (!indexToken || !amountInStr || !sizeDeltaStr || !triggerPriceStr) {
-    console.error('用法: node create-limit-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>');
+    console.error('Usage: node create-limit-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> <triggerPrice_usd> <triggerAbove>');
     process.exit(1);
   }
-  if (!process.env.PRIVATE_KEY) { console.error('需要设置 PRIVATE_KEY'); process.exit(1); }
+  if (!process.env.PRIVATE_KEY) { console.error('PRIVATE_KEY is required'); process.exit(1); }
 
   const isLong       = isLongStr !== 'false';
   const triggerAbove = triggerAboveStr === 'true';
   const amountIn     = ethers.parseUnits(amountInStr, 6);
   const sizeDelta    = ethers.parseUnits(sizeDeltaStr, 30);
   const triggerPrice = ethers.parseUnits(triggerPriceStr, 30);
-  // lever = sizeDelta(USD) / amountIn(USD) * 10000，合约单位 10000=1x
+  // lever = sizeDelta(USD) / amountIn(USD) * 10000, contract unit 10000=1x
   const lever        = (sizeDelta * 10000n) / ethers.parseUnits(amountInStr, 30);
 
   const provider = new ethers.JsonRpcProvider(RPC_URL);
@@ -38,11 +38,11 @@ async function main() {
 
   const allowance = await usdt.allowance(wallet.address, ORDER_BOOK);
   if (allowance < amountIn) {
-    console.log('授权 USDT...');
+    console.log('Approving USDT...');
     await (await usdt.approve(ORDER_BOOK, ethers.MaxUint256)).wait();
   }
 
-  console.log(`创建限价${isLong ? '多' : '空'}单: amountIn=${amountInStr} USDT, triggerPrice=${triggerPriceStr} USD, triggerAbove=${triggerAbove}`);
+  console.log(`Creating limit ${isLong ? 'long' : 'short'}: amountIn=${amountInStr} USDT, triggerPrice=${triggerPriceStr} USD, triggerAbove=${triggerAbove}`);
   const tx = await ob.createIncreaseOrder(
     [USDT],        // path
     amountIn,
@@ -55,7 +55,7 @@ async function main() {
     lever
   );
   const receipt = await tx.wait();
-  console.log('限价开仓单已创建，txHash:', receipt.hash);
+  console.log('Limit open order created, txHash:', receipt.hash);
 }
 
 main().catch(e => { console.error(e.message); process.exit(1); });

@@ -1,41 +1,41 @@
-# DERIW 合约地址速查表
+# DERIW Contract Address Reference
 
-## 网络配置
+## Network Configuration
 
-| 链 | RPC | Chain ID | 说明 |
+| Chain | RPC | Chain ID | Notes |
 |---|---|---|---|
-| DERIW 链（L3）| `https://rpc.deriw.com` | `2885` | **默认链（线上）**，所有合约均在此 |
-| DERIW Dev 链（L3）| `https://rpc.dev.deriw.com` | — | **开发网**，调试/测试用 |
-| Arbitrum（L2）| 公共 RPC | `42161` | 仅 `UserL2ToL3Router` 在此 |
+| DERIW Chain (L3) | `https://rpc.deriw.com` | `2885` | **Default chain (Production)** — all contracts are here |
+| DERIW Dev Chain (L3) | `https://rpc.dev.deriw.com` | `18417507517` | **Devnet** — for debugging/testing |
+| Arbitrum (L2) | Public RPC | `42161` | Only `UserL2ToL3Router` is here |
 
 **API Base URL**
 
-| 环境 | Base URL |
+| Environment | Base URL |
 |---|---|
-| 线上 | `https://api.deriw.com` |
-| 开发网 | `https://testgmxapi.weequan.cyou` |
+| Production | `https://api.deriw.com` |
+| Devnet | `https://testgmxapi.weequan.cyou` |
 
 ---
 
-## 代币地址（DERIW 链）
+## Token Addresses (DERIW Chain)
 
-| 代币 | 地址 | 说明 |
+| Token | Address | Notes |
 |---|---|---|
-| **USDT（L3）** | `0x3B11A54514A708CC2261f4B69617910E172a90B3` | L3 主池稳定币（USD₮0），6 位精度 |
-| **USDT（Arbitrum L2）** | `0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9` | 仅用于 L2→L3 跨链充值 |
-| GLP | `0x9E06Fe81dCad8cdc624C4B5fb126Aeed0449CFc9` | 主池 LP 代币 |
-| LpToken | `0x62c723Dfd86C07BA8a00B8d70A95fF772De0A26C` | 资金池 V2 LP 代币 |
+| **USDT (L3)** | `0x3B11A54514A708CC2261f4B69617910E172a90B3` | L3 main pool stablecoin (USD₮0), 6 decimals |
+| **USDT (Arbitrum L2)** | `0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9` | Used only for L2→L3 cross-chain deposits |
+| GLP | `0x9E06Fe81dCad8cdc624C4B5fb126Aeed0449CFc9` | Main pool LP token |
+| LpToken | `0x62c723Dfd86C07BA8a00B8d70A95fF772De0A26C` | Fund Pool V2 LP token |
 
-**集合 1（rate: 1500 基点）**
+**Set 1 (rate: 1500 bps)**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | ASTER | `0xb2d98323AD400B711e49f131086783d3471AcAd8` |
 | XAUt | `0xFbD3AE1b32fcCe9EdD86519223Ef773Dbc399795` |
 
-**集合 2（rate: 8200 基点）**
+**Set 2 (rate: 8200 bps)**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | WBTC | `0x9cAaCD673fd5C6C4b3Aa3c4E55e930ca5A4f32fe` |
 | DOGE | `0x2fDC17Dca642BBA2f4ad5DD51E891A277670B556` |
@@ -59,9 +59,9 @@
 | ONDO | `0x56104434bFF98bE272997262098092d37d074e0B` |
 | PAXG | `0x653d3D23F5a09DD38990691fbf47432977b1Bad8` |
 
-**集合 3（rate: 300 基点）**
+**Set 3 (rate: 300 bps)**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | SOMI | `0xfa4bdAD5B858263DEadCbD826AD1b4e9a5f43D62` |
 | PENDLE | `0xa0750EF1fA99A393ca82771bf91ba80e709ca692` |
@@ -69,19 +69,19 @@
 
 ---
 
-## 系统合约地址（DERIW 链，Chain ID: 2885）
+## System Contract Addresses (DERIW Chain, Chain ID: 2885)
 
-### 核心交易
+### Core Trading
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **Vault** | `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653` |
 | **PositionRouter** | `0x80257F37d327FA0EF464eFa64DdFb755dE111262` |
 | **OrderBook** | `0x86A0D906c6375846b05a0EF20931c1B4d2489C13` |
 
-### 价格 & 辅助
+### Price & Utilities
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | VaultPriceFeed | `0xEC7046731d5ef62Ce62C0291b7dF891E62aECC7E` |
 | FastPriceFeed | `0x43948B78477963d7b408A0E27Ae168584C6E07A9` |
@@ -90,25 +90,25 @@
 | DataReader | `0xf0A6bd9feb742E56C39A7df4544A093A12858c64` |
 | GlpManager | `0xa61ddD4Cf723cDB339008021aD05e5a1BE140F3f` |
 
-### 批量读取
+### Batch Reads
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | OrderBookReader | `0x239e5A9813C469D86D3322133e3c1AbA77A412f8` |
 | Reader | `0x84C1F027f05E2c944D0Ccee94d29C34Ea3Fcf9eD` |
 | VaultReader | `0x1A635dCb4254965432271b49D2E347615c70383a` |
 
-### 代币数据 & 配置
+### Token Data & Configuration
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | CoinData | `0xAb9Ded668e6F7167DA4D3529cC8463AA88d6454f` |
 | Phase | `0x463c7e40A4eE5e4E2072055aFa14a15E88b38F5a` |
 | Slippage | `0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E` |
 
-### 资金池 V2
+### Fund Pool V2
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **FundRouterV2** | `0x3D343Fc0F6c6D2E047ec5e16e39A9b6A2031B9Ac` |
 | **PoolDataV2** | `0x305507D45D5441B81F5dD8FF9f00f65e0B392e86` |
@@ -117,27 +117,27 @@
 | Risk | `0xa595029b9EB4765c09Fc0F64468c2eB1560522a7` |
 | AuthV2 | `0xfd172A0EEF6Fb443de4A4b52abcA488E52Ce598c` |
 
-### Meme 池
+### Meme Pool
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | MemeRouter | `0xf128817F665E8469BBC3d6f2ade7f073180a010E` |
 | MemeData | `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8` |
 | MemeFactory | `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e` |
-| MemePool | 部署时动态创建，通过 MemeFactory 查询 |
+| MemePool | Dynamically created on deployment, query via MemeFactory |
 | MemeRisk | `0xB9f73b8b2feeD51B16E49dC0482ca0C16964aaa0` |
 
-### 邀请 & 返佣
+### Referral & Rebate
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | ReferralStorage | `0x83a30fa6FA383FcA37AD1e72fFf927961e06cD79` |
 | ReferralData | `0x2Bd4B513C5B2aD07516CCA330DE1AE87B82FFA98` |
 | FeeBonus | `0x1F1E7D48424ed1BdF9cD7aEB85d319eFF0191A6E` |
 
-### 其他
+### Other
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | GlpRewardRouter | `0xE9F045f0CE5dc1AD552e20E8df668194d67f95D5` |
 | TokenHelper | `0xc5Ce3D29De397c4ec7C3f2b47ddD4608f8143e8c` |
@@ -145,73 +145,73 @@
 | Multicall3 | `0x15789E21a9D09f8F32738bd44b683F79D1299104` |
 | **UserL3ToL2Router** | `0x8fb358679749FD952Ea5f090b0eA3675722B08F5` |
 
-### 跨链桥（Arbitrum L2，Chain ID: 42161）
+### Cross-Chain Bridge (Arbitrum L2, Chain ID: 42161)
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **UserL2ToL3Router** | `0xaE7203eBA7E570A6B5C7A303987B6C824dF5A325` |
 
 ---
 
-## 精度速查
+## Precision Reference
 
-| 类型 | 精度 | 示例 |
+| Type | Precision | Example |
 |---|---|---|
-| 价格（USD）| `1e30` | `ethers.parseUnits("65000", 30)` |
-| USDT 金额 | `1e6` | `ethers.parseUnits("100", 6)` |
-| 代币金额 | `1e18`（或 decimals）| `ethers.parseUnits("1", 18)` |
-| 手续费基点 | `10000 = 100%` | `30 = 0.3%` |
-| 杠杆 | `10000 = 1x` | `100000 = 10x` |
+| Price (USD) | `1e30` | `ethers.parseUnits("65000", 30)` |
+| USDT amount | `1e6` | `ethers.parseUnits("100", 6)` |
+| Token amount | `1e18` (or decimals) | `ethers.parseUnits("1", 18)` |
+| Fee basis points | `10000 = 100%` | `30 = 0.3%` |
+| Leverage | `10000 = 1x` | `100000 = 10x` |
 
 ---
 
-## Enum 常量（跨链路由）
+## Enum Constants (Cross-Chain Router)
 
-跨链脚本和 EIP-712 签名中使用的字符串枚举值。新增枚举值时在此维护。
+String enum values used in cross-chain scripts and EIP-712 signatures. Update here when adding new enum values.
 
-### `transactionType`（UserL3ToL2Router.outboundTransfer Message 字段）
+### `transactionType` (UserL3ToL2Router.outboundTransfer Message field)
 
-| 值 | 说明 |
+| Value | Notes |
 |---|---|
-| `"Withdraw USDT"` | USDT 提现转账（通过真实 tx 逆向确认） |
+| `"Withdraw USDT"` | USDT withdrawal transfer (confirmed via real tx reverse engineering) |
 
-### `chain`（UserL3ToL2Router.outboundTransfer Message 字段）
+### `chain` (UserL3ToL2Router.outboundTransfer Message field)
 
-| 值 | 目标链 | 说明 |
+| Value | Target Chain | Notes |
 |---|---|---|
-| `"DeriW Chain"` | Arbitrum（L2）| 线上：从 DERIW 链提现到 Arbitrum |
-| `"DeriW Devnet"` | Arbitrum Sepolia（L2）| dev 环境：从 DERIW Dev 链提现到 Arbitrum Sepolia |
+| `"DeriW Chain"` | Arbitrum (L2) | Production: withdraw from DERIW Chain to Arbitrum |
+| `"DeriW Devnet"` | Arbitrum Sepolia (L2) | Dev environment: withdraw from DERIW Dev Chain to Arbitrum Sepolia |
 
-### EIP-712 签名注意事项（UserL3ToL2Router）
+### EIP-712 Signing Notes (UserL3ToL2Router)
 
-- `domain.name = 'Transaction'`（非 'DERIW'）
-- `domain.chainId` 取自 `router.chainid()`（线上=42161，Dev=421614），非网络 chainId
-- 签名需用合约 `hashDomain/hashMessage/hashData` 计算最终 hash，再直接签名（`wallet.signingKey.sign`），不可用标准 `signTypedData`
-- `_data` 传空字节 `'0x'`（token/amount/receiver 已在 message 中）
-- `msg.value = 0`（合约不收 ETH；Dev 链需 `gasPrice: 0n`）
-- `l2Token` 取自 `USDT_L3.l1Address()`（Dev: `0x259D16cd04c451eed734908b3df2D3e58AC1e99f`，线上: `0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9`）
+- `domain.name = 'Transaction'` (not 'DERIW')
+- `domain.chainId` comes from `router.chainid()` (production=42161, Dev=421614), not the network chainId
+- Signature requires computing final hash using contract `hashDomain/hashMessage/hashData`, then signing directly (`wallet.signingKey.sign`), standard `signTypedData` cannot be used
+- `_data` passes empty bytes `'0x'` (token/amount/receiver are already in message)
+- `msg.value = 0` (contract does not charge ETH; Dev chain requires `gasPrice: 0n`)
+- `l2Token` comes from `USDT_L3.l1Address()` (Dev: `0x259D16cd04c451eed734908b3df2D3e58AC1e99f`, Production: `0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9`)
 
 ---
 
-## 开发网合约地址（Dev，RPC: https://rpc.dev.deriw.com）
+## Dev Network Contract Addresses (Dev, RPC: https://rpc.dev.deriw.com)
 
-> API Base URL：`https://testgmxapi.weequan.cyou`
+> API Base URL: `https://testgmxapi.weequan.cyou`
 
-### 主池代币（Dev）
+### Main Pool Tokens (Dev)
 
-| 代币 | 地址 | 说明 |
+| Token | Address | Notes |
 |---|---|---|
-| **USDT** | `0x12530882c64B1c22dAdf2F60639145029c5081Da` | 主池稳定币，6 位精度 |
+| **USDT** | `0x12530882c64B1c22dAdf2F60639145029c5081Da` | Main pool stablecoin, 6 decimals |
 
-**单币种**
+**Single token**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | WBTC | `0x9F37821B7C4A5EfaA4d92aa9A6dE526237C30ceD` |
 
-**集合 1**
+**Set 1**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | XAUT | `0x5932b02809Dab34C98Ca3B5E66571B10Ad7A3f3B` |
 | ETH | `0x81Af7E76aDC98B7587d46B551e5707A46e35eBe5` |
@@ -221,32 +221,32 @@
 | PAXG | `0xE274217E73337a899b8BF543BcbcaDBDc89199F8` |
 | ONDO | `0xf863138d2119190199508bdB2BEc2474ad383935` |
 
-**集合 2**
+**Set 2**
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
 | XAG | `0x8282e36Ac85aB338DcCEfEFfbf4c71FD1efa5D1B` |
 
-### Meme 池代币（Dev）
+### Meme Pool Tokens (Dev)
 
-| 代币 | 地址 |
+| Token | Address |
 |---|---|
-| ACT（主池地址）| `0x7a3889ABC99B04b431baE30a00748BC290656939` |
+| ACT (main pool address) | `0x7a3889ABC99B04b431baE30a00748BC290656939` |
 
-### 系统合约（Dev）
+### System Contracts (Dev)
 
-#### 核心交易
+#### Core Trading
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **Vault** | `0x75Da7523f99bA38a8cAD831EbE2F09aDF5896d89` |
 | **PositionRouter** | `0x12f0C0fb9548EeB2DAa379d10C7CdCB63f6848F9` |
 | **OrderBook** | `0x18c6d9d1f9a1d6b9b3fA6d104f9A0d8efa7C9689` |
 | Router | `0x23D9D11717a5CC9A90A7982445452e225060B511` |
 
-#### 价格 & 辅助
+#### Price & Utilities
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | VaultPriceFeed | `0x843a577B32F280518E8dF305D8AD469111279135` |
 | FastPriceFeed | `0x32fDB8b4674e1cC233175D3C7eD41c6e21dbD3B4` |
@@ -257,26 +257,26 @@
 | DataReader | `0xe3D2e9B99050F047f77159651950b7bdfD7465D0` |
 | ADL | `0x523213b127815f7ec190930908886d6D1Ac2857E` |
 
-#### 批量读取
+#### Batch Reads
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | Reader | `0xb49676cF7ff87a42dae3129997688333886AC126` |
 | VaultReader | `0xEf4a5Dd7418Fd53508E94e3f7b8A977425bE70d4` |
 | OrderBookReader | `0xF2cc684b2bD5D9F114F48e80aD06036797A94660` |
 
-#### 代币数据 & 配置
+#### Token Data & Configuration
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | CoinData | `0xC75DC20185d2aB64d5faBF227285AB171D50D825` |
 | Slippage | `0x3600Cc37027146d0E9cf0E146D21390CFF474d75` |
 | GLP | `0x91A74B8bf30dfe0DB611800927Dee13E28808218` |
 | LpToken | `0xCaf5c59286Cd3B38db3d9Be1d2e47538D44Ed060` |
 
-#### 资金池 V2
+#### Fund Pool V2
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **FundRouterV2** | `0x324D847bc335032855972DA8d2f825BF7df14dCD` |
 | **PoolDataV2** | `0xf0290fAc0B56E0F9EB09abdc24C0713Ce4D96116` |
@@ -285,9 +285,9 @@
 | Risk | `0x8a6F1711Da6E059083C0867f4777A513D30c0103` |
 | AuthV2 | `0x2861BE41cd7Fd1C2bAa8Ea256c37AD7De68Cb3Bb` |
 
-#### Meme 池
+#### Meme Pool
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | MemeRouter | `0xeDa46Dc1f8A64C7F5C811cb2dE1cC775b04A0195` |
 | MemeData | `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1` |
@@ -295,17 +295,17 @@
 | MemeRisk | `0x141C93DE887DaC44569a9F3FE7dd1210281D5dbC` |
 | MemeErrorContract | `0xf2cF85c7BF91900172690680C96c918348190881` |
 
-#### 邀请 & 返佣
+#### Referral & Rebate
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | ReferralStorage | `0x041d7bd9D77f6aa9eE4037cf38e714Bf8eA1787B` |
 | ReferralData | `0x228cF505D464C02625371904935e0011b9e3e134` |
 | FeeBonus | `0x8cCA264D88F0Aa2608Ed67734b57F6d8e2aB8B42` |
 
-#### 其他
+#### Other
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | GlpRewardRouter | `0xbe38b4511b8A44dC0D36367D22f56f4b75a6CD6b` |
 | TokenHelper | `0xAf7C56F337468bC44a63D37A34804151D62F53cd` |
@@ -317,8 +317,8 @@
 | Timelock | `0x7bC076Ef7574e327143D1bbeCB41316373a5CEFc` |
 | **UserL3ToL2Router** | `0x32068069f13191B57c03Eee8531a8C82b26d12B9` |
 
-#### 跨链桥（Arbitrum L2）
+#### Cross-Chain Bridge (Arbitrum L2)
 
-| 合约 | 地址 |
+| Contract | Address |
 |---|---|
 | **UserL2ToL3Router** | `0x81A88de21De37A025660D746164A9AB013822263` |

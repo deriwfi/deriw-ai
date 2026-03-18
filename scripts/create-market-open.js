@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * 市价开仓（PositionRouter.createIncreasePosition）
- * 用法: node create-market-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> [referralCode]
- * 示例: node create-market-open.js 0x9cAaCD673fd5C6C4b3Aa3c4E55e930ca5A4f32fe 100 5000 true
+ * Market open (PositionRouter.createIncreasePosition)
+ * Usage: node create-market-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong> [referralCode]
+ * Example: node create-market-open.js 0x9cAaCD673fd5C6C4b3Aa3c4E55e930ca5A4f32fe 100 5000 true
  *
- * 环境变量: DERIW_RPC_URL, PRIVATE_KEY（必填）
- * amountIn_usdt: USDT 数量（普通单位，如 100 = 100 USDT）
- * sizeDelta_usd: 仓位大小（USD，如 5000 = 5000 USD）
+ * Environment variables: DERIW_RPC_URL, PRIVATE_KEY (required)
+ * amountIn_usdt: USDT amount (normal units, e.g. 100 = 100 USDT)
+ * sizeDelta_usd: Position size (USD, e.g. 5000 = 5000 USD)
  */
 const { ethers } = require('ethers');
 const PositionRouterABI  = require('../assets/PositionRouter.json');
@@ -27,38 +27,38 @@ async function main() {
   ] = process.argv.slice(2);
 
   if (!indexToken || !amountInStr || !sizeDeltaStr) {
-    console.error('用法: node create-market-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong=true>');
+    console.error('Usage: node create-market-open.js <indexToken> <amountIn_usdt> <sizeDelta_usd> <isLong=true>');
     process.exit(1);
   }
-  if (!process.env.PRIVATE_KEY) { console.error('需要设置 PRIVATE_KEY'); process.exit(1); }
+  if (!process.env.PRIVATE_KEY) { console.error('PRIVATE_KEY is required'); process.exit(1); }
 
   const isLong    = isLongStr !== 'false';
-  const amountIn  = ethers.parseUnits(amountInStr, 6);   // USDT 6位精度
-  const sizeDelta = ethers.parseUnits(sizeDeltaStr, 30); // USD 30位精度
+  const amountIn  = ethers.parseUnits(amountInStr, 6);   // USDT 6 decimals
+  const sizeDelta = ethers.parseUnits(sizeDeltaStr, 30); // USD 30 decimals
 
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   const wallet   = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const router   = new ethers.Contract(POSITION_ROUTER, PositionRouterABI, wallet);
   const usdt     = new ethers.Contract(USDT, IERC20ABI, wallet);
 
-  // 授权给内部 Router（实际执行 transferFrom 的合约）
+  // Approve internal Router (the contract that actually calls transferFrom)
   const allowance = await usdt.allowance(wallet.address, ROUTER);
   if (allowance < amountIn) {
-    console.log('授权 USDT 给 Router...');
+    console.log('Approving USDT to Router...');
     await (await usdt.approve(ROUTER, ethers.MaxUint256)).wait();
-    console.log('授权完成');
+    console.log('Approval complete');
   }
 
-  // 从 VaultPriceFeed 读取当前价格，并加减 1% 滑点作为 acceptablePrice
+  // Read current price from VaultPriceFeed and apply 1% slippage as acceptablePrice
   const priceFeed    = new ethers.Contract(VAULT_PRICE_FEED, VaultPriceFeedABI, provider);
   const currentPrice = await priceFeed.getPrice(indexToken, isLong, true, true);
   const slippage     = currentPrice / 100n; // 1%
   const acceptablePrice = isLong
-    ? currentPrice + slippage   // 多单：最高接受价格 = 当前价 + 1%
-    : currentPrice - slippage;  // 空单：最低接受价格 = 当前价 - 1%
-  console.log(`当前价格: ${ethers.formatUnits(currentPrice, 30)} USD，acceptablePrice: ${ethers.formatUnits(acceptablePrice, 30)} USD`);
+    ? currentPrice + slippage   // Long: max acceptable price = current price + 1%
+    : currentPrice - slippage;  // Short: min acceptable price = current price - 1%
+  console.log(`Current price: ${ethers.formatUnits(currentPrice, 30)} USD, acceptablePrice: ${ethers.formatUnits(acceptablePrice, 30)} USD`);
 
-  console.log(`创建市价${isLong ? '多' : '空'}单: amountIn=${amountInStr} USDT, sizeDelta=${sizeDeltaStr} USD`);
+  console.log(`Creating market ${isLong ? 'long' : 'short'}: amountIn=${amountInStr} USDT, sizeDelta=${sizeDeltaStr} USD`);
   const tx = await router.createIncreasePosition(
     [USDT],          // path
     indexToken,
@@ -70,8 +70,8 @@ async function main() {
     ethers.ZeroAddress // callbackTarget
   );
   const receipt = await tx.wait();
-  console.log('开仓请求已提交，txHash:', receipt.hash);
-  console.log('注意：请求需由执行者在链上执行后才生效（通常几秒内）');
+  console.log('Open position request submitted, txHash:', receipt.hash);
+  console.log('Note: Request must be executed on-chain by the executor before taking effect (usually within seconds)');
 }
 
 main().catch(e => { console.error(e.message); process.exit(1); });
