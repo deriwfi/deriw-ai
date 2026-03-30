@@ -555,9 +555,199 @@ await router.outboundTransfer(data, domain, message, signature, { value: fee });
 
 | Value Type | Precision | ethers.js Example |
 |---|---|---|
-| Price (USD) | `1e30` | `ethers.parseUnits("65000", 30)` |
+| Price (USD, main pool) | `1e30` | `ethers.parseUnits("65000", 30)` |
+| Price (USD, Edge Hour PriceOracle) | `1e18` | `ethers.formatEther(price)` |
 | USDT amount | `1e6` | `ethers.parseUnits("100", 6)` |
 | Token amount | `1e18` | `ethers.parseUnits("1", 18)` |
-| GLP amount | `1e18` | `ethers.parseUnits("1", 18)` |
+| GLP / LP shares | `1e18` | `ethers.parseUnits("1", 18)` |
 | Fee basis points | `10000 = 100%` | `30 = 0.3%` |
-| Leverage | `10000 = 1x` | `500000 = 50x` |
+| Leverage (main pool) | `10000 = 1x` | `500000 = 50x` |
+| Leverage (Edge Hour template) | raw multiplier | `2000 = 20x` |
+
+---
+
+## Edge Hour: ChallengeManager
+
+Address:
+- Production: `0xBb1785B6A90819C11b8467ff85652661BE0286db`
+- Dev: `0x086603940a23464A60ABeBcD887524eD3b0f3150`
+
+ABI: `assets/edge_hour/ChallengeManager.json`
+
+> **Precision**: All amounts (ticketFee, sizeDelta, collateralDelta, currentBalance) use `1e6` (USDT unit)
+
+**Challenge Status Enum**
+
+| Value | Name | Description |
+|---|---|---|
+| `0` | None | Does not exist |
+| `1` | Active | Challenge in progress |
+| `2` | Passed | Profit target met, reward claimable |
+| `3` | Failed | Timed out or max drawdown triggered |
+| `4` | Claimed | Reward already claimed |
+
+**Read Methods (view)**
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `getChallengeTemplateLength()` | — | `uint256` | Total number of templates |
+| `getChallengeTemplate(templateId)` | `uint256` | `(params_tuple, isActive)` | Get template parameters (params[0]=maxTicketFee, [1]=initialBalance, [2]=targetBps, [3]=maxLossBps, [4]=duration, [5]=prizeMultiplierBps, [6]=tradeFeeBps, [7]=minTrades, [8]=minHoldTime, [9]=maintenanceMarginBps, [10]=maxSingleProfitBps, [11]=tokens[], [12]=leverages[]) |
+| `getActiveChallengeId(user)` | `address` | `(bool exists, uint256 challengeId)` | Query user's current active challenge |
+| `getChallengeState(challengeId)` | `uint256` | `UserChallengeState` | Full challenge state ([0]=user, [1]=status, [2]=activePositionCount, [3]=tradeCount, [4]=startTime, [5]=expiryTime, [6]=ticketFee, [7]=currentBalance, [8]=cappedEquity, [9]=referrerChallengeId, [10]=cappedProfit, [11]=currentLoss) |
+| `getPosition(challengeId, key)` | `uint256, bytes32` | `Position` | Get position (size/averagePrice/collateral/lastIncreaseTime, all 1e6) |
+| `getPositionKey(challengeId, indexToken, isLong)` | `uint256, address, bool` | `bytes32` | Compute unique position key (behaves as pure) |
+| `challengeMaxLeverage(challengeId, token)` | `uint256, address` | `uint256` | Max leverage for specified token in current challenge |
+| `templateMaxLeverage(templateId, token)` | `uint256, address` | `uint256` | Max leverage for specified token in template |
+| `addRewardNumber(challengeId)` | `uint256` | `uint256` | Claimable reward amount for this challenge |
+| `minPositionValueUsd()` | — | `uint256` | Minimum position value (1e6, default 10 USDT) |
+| `ticketUnit()` | — | `uint256` | Minimum ticket unit (5 USDT = 5000000) |
+| `nextChallengeId()` | — | `uint256` | Next challenge ID |
+| `referralConfig()` | — | `(inviterBonusBps, inviteeDurationBonusBps, inviteeTicketDiscountBps, maxRewardNumberCap)` | Referral configuration |
+| `paused()` | — | `bool` | Whether contract is paused |
+
+**Write Methods**
+
+| Method | Parameters | Description |
+|---|---|---|
+| `startChallenge(templateId, ticketFee)` | `uint256, uint256` | Start challenge; approve USDT first; ticketFee must be an exact multiple of ticketUnit |
+| `increasePosition(iPosition)` | `{challengeId, indexToken, sizeDelta, collateralDelta, isLong}` | Virtual open/increase position (no token transfer; sizeDelta/collateralDelta in 1e6) |
+| `closePosition(cPosition)` | `{challengeId, indexToken, isLong}` | Virtual full position close |
+| `claimReward(challengeId)` | `uint256` | Claim reward (status must be 2=Passed) |
+| `setTraderReferralCode(code, sType, challengeId)` | `string, uint8, uint256` | Set referral code (call after starting challenge) |
+
+**Key Events**
+
+| Event | Fields | Description |
+|---|---|---|
+| `ChallengeStarted` | `challengeId, templateId, templateParams, challengeState, paidTicketFee` | Challenge started |
+| `PositionIncreased` | `challengeId, positionKey, iPosition, price, newSize, newAveragePrice, user, fee` | Position opened/increased (price is 1e18; newSize/fee are 1e6) |
+| `PositionClosed` | `challengeId, positionKey, p, price, realizedPnl, user, fee, cappedProfit, cappedEquity` | Position closed (realizedPnl/fee/cappedProfit/cappedEquity are 1e6) |
+| `ChallengePassed` | `challengeId` | Challenge passed |
+| `ChallengeFailed` | `challengeId, reason` | Challenge failed |
+| `RewardClaimed` | `challengeId, user, amount` | Reward claimed (amount is 1e6) |
+
+**Usage Example**
+
+```javascript
+const { ethers } = require('ethers');
+const ABI = require('./assets/edge_hour/ChallengeManager.json');
+const IS_DEV = process.env.DEV === 'true';
+const ADDR = IS_DEV ? '0x086603940a23464A60ABeBcD887524eD3b0f3150' : '0xBb1785B6A90819C11b8467ff85652661BE0286db';
+const RPC  = IS_DEV ? 'https://rpc.dev.deriw.com' : 'https://rpc.deriw.com';
+
+const provider = new ethers.JsonRpcProvider(RPC);
+const wallet   = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+const cm       = new ethers.Contract(ADDR, ABI, wallet);
+
+// Query user's active challenge
+const [exists, challengeId] = await cm.getActiveChallengeId(wallet.address);
+
+// Start challenge (approve USDT first)
+const gasOpts = IS_DEV ? { gasPrice: 0n } : {};
+await cm.startChallenge(templateId, ethers.parseUnits('5', 6), gasOpts);
+
+// Open virtual position (no token transfer)
+await cm.increasePosition({
+  challengeId,
+  indexToken: '0x9F37821B7C4A5EfaA4d92aa9A6dE526237C30ceD', // WBTC
+  sizeDelta:      ethers.parseUnits('1000', 6),  // 1000 USDT size
+  collateralDelta: ethers.parseUnits('100', 6),  // 100 USDT collateral (10x)
+  isLong: true,
+}, gasOpts);
+
+// Close position
+await cm.closePosition({ challengeId, indexToken, isLong: true }, gasOpts);
+
+// Claim reward
+await cm.claimReward(challengeId, gasOpts);
+```
+
+---
+
+## Edge Hour: LPVault
+
+Address:
+- Production: `0x29F463c832C03076ab2cB9734fD6C0e3B135B00b`
+- Dev: `0x2eB88D51C30708f8539c949855F39861e7f3adB5`
+
+ABI: `assets/edge_hour/LPVault.json`
+
+> **Note**: `deposit()` requires `whitelist(addr) == true`, added by the contract owner via `addToWhitelist()`.
+
+**Read Methods**
+
+| Method | Returns | Description |
+|---|---|---|
+| `totalAssets()` | `uint256` | Total vault assets (1e6 USDT) |
+| `availableLiquidity()` | `uint256` | Available liquidity (1e6) |
+| `lpAssetBalance()` | `uint256` | LP asset balance (1e6) |
+| `sharePrice()` | `uint256` | USDT per share (1e18, initially 1.0) |
+| `totalSupply()` | `uint256` | Total LP shares (1e18) |
+| `balanceOf(account)` | `uint256` | User LP shares (1e18) |
+| `maxWithdraw(user)` | `uint256` | User's maximum withdrawable amount (1e6 USDT) |
+| `previewWithdraw(assets)` | `uint256 shares` | Shares burned to withdraw the given assets (USDT) |
+| `getStatistics()` | `(totalFees, totalRewards, netProfit, currentBalance, pending)` | Global stats, all in 1e6 |
+| `protocolFeeConfig()` | `(ticketFeeBps, rewardFeeBps, feeRecipient)` | Protocol fee configuration |
+| `pendingRewards()` | `uint256` | Pending rewards (1e6) |
+| `totalPotentialPayout()` | `uint256` | Maximum potential payout for all active challenges (1e6) |
+| `whitelist(address)` | `bool` | Whether address is whitelisted |
+| `maxVaultUtilizationBps()` | `uint256` | Maximum utilization rate (bps, 8000=80%) |
+| `paused()` | `bool` | Whether contract is paused |
+
+**Write Methods**
+
+| Method | Parameters | Description |
+|---|---|---|
+| `deposit(assets)` | `uint256` | Deposit USDT (1e6), returns LP shares received; approve USDT first; address must be whitelisted |
+| `withdraw(assets)` | `uint256` | Redeem USDT (1e6), burns corresponding LP shares; call `maxWithdraw` first to confirm available amount |
+
+**Usage Example**
+
+```javascript
+const ABI  = require('./assets/edge_hour/LPVault.json');
+const vault = new ethers.Contract(LP_VAULT_ADDR, ABI, wallet);
+
+// Deposit (whitelist required)
+const amount = ethers.parseUnits('100', 6);
+await usdt.approve(LP_VAULT_ADDR, ethers.MaxUint256);
+await vault.deposit(amount, gasOpts);
+
+// Query max withdrawable amount
+const max = await vault.maxWithdraw(wallet.address);
+// Withdraw
+await vault.withdraw(max, gasOpts);
+
+// Query statistics
+const stats = await vault.getStatistics();
+console.log('totalFees:', Number(stats.totalFees)/1e6, 'USDT');
+```
+
+---
+
+## Edge Hour: PriceOracle
+
+Address:
+- Production: `0x493De553C9948f463f31249833D4d02D6DF9d0cB`
+- Dev: `0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC`
+
+ABI: `assets/edge_hour/PriceOracle.json`
+
+> **Precision**: `getPrice()` returns `price * 1e18` (differs from the main pool VaultPriceFeed which uses 1e30)
+
+**Read Methods**
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `getPrice(indexToken)` | `address` | `uint256` | Get token price (1e18 precision), e.g. BTC=70000 → 70000×10¹⁸ |
+| `fastPriceFeed()` | — | `address` | Underlying FastPriceFeed address |
+| `maxPriceTime()` | — | `uint256` | Maximum price validity duration (seconds) |
+
+**Usage Example**
+
+```javascript
+const ABI    = require('./assets/edge_hour/PriceOracle.json');
+const oracle = new ethers.Contract(PRICE_ORACLE_ADDR, ABI, provider);
+
+const rawPrice = await oracle.getPrice(WBTC_ADDR);
+console.log('BTC price:', ethers.formatEther(rawPrice), 'USD'); // formatEther = /1e18
+```

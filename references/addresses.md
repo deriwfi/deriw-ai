@@ -19,6 +19,8 @@
 
 ## Token Addresses (DERIW Chain)
 
+> Addresses verified against live chain via `GET /client/coins` (production API) and on-chain contract reads. Last synced: 2026-03-25.
+
 | Token | Address | Notes |
 |---|---|---|
 | **USDT (L3)** | `0x3B11A54514A708CC2261f4B69617910E172a90B3` | L3 main pool stablecoin (USD₮0), 6 decimals |
@@ -73,11 +75,12 @@
 
 ### Core Trading
 
-| Contract | Address |
-|---|---|
-| **Vault** | `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653` |
-| **PositionRouter** | `0x80257F37d327FA0EF464eFa64DdFb755dE111262` |
-| **OrderBook** | `0x86A0D906c6375846b05a0EF20931c1B4d2489C13` |
+| Contract | Address | Notes |
+|---|---|---|
+| **Vault** | `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653` | |
+| **PositionRouter** | `0x80257F37d327FA0EF464eFa64DdFb755dE111262` | |
+| Router | `0x1eB6Dfc3316012C5795E1060f8BD1CEa10df30F5` | USDT approve target for market open; `PositionRouter.router()` verified |
+| **OrderBook** | `0x86A0D906c6375846b05a0EF20931c1B4d2489C13` | |
 
 ### Price & Utilities
 
@@ -198,6 +201,8 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 > API Base URL: `https://testgmxapi.weequan.cyou`
 
 ### Main Pool Tokens (Dev)
+
+> Addresses verified against `GET /client/coins` (dev API) and on-chain contract reads. Last synced: 2026-03-25.
 
 | Token | Address | Notes |
 |---|---|---|
@@ -322,3 +327,47 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 | Contract | Address |
 |---|---|
 | **UserL2ToL3Router** | `0x81A88de21De37A025660D746164A9AB013822263` |
+
+#### Edge Hour (Dev)
+
+| Contract | Address | Purpose |
+|---|---|---|
+| **ChallengeManager** | `0x086603940a23464A60ABeBcD887524eD3b0f3150` | Full challenge lifecycle (start/trade/settle/claim) |
+| **LPVault** | `0x2eB88D51C30708f8539c949855F39861e7f3adB5` | LP deposit/withdraw (whitelist required) |
+| **PriceOracle** | `0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC` | Price query (1e18 precision) |
+
+### Production Contract Addresses (Production, RPC: https://rpc.deriw.com)
+
+#### Edge Hour (Production)
+
+| Contract | Address | Purpose |
+|---|---|---|
+| **ChallengeManager** | `0xBb1785B6A90819C11b8467ff85652661BE0286db` | Full challenge lifecycle |
+| **LPVault** | `0x29F463c832C03076ab2cB9734fD6C0e3B135B00b` | LP deposit/withdraw |
+| **PriceOracle** | `0x493De553C9948f463f31249833D4d02D6DF9d0cB` | Price query (1e18 precision) |
+
+### Edge Hour Token Addresses
+
+Edge Hour uses the same token addresses as the main pool, supporting 5 trading pairs (addresses verified on-chain via `ChallengeManager.getChallengeTemplate()`):
+
+**Dev Chain**
+
+| Token | Address | Verified via |
+|---|---|---|
+| BTC (WBTC) | `0x9F37821B7C4A5EfaA4d92aa9A6dE526237C30ceD` | `getChallengeTemplate(12).tokens[0]` |
+| ETH        | `0x81Af7E76aDC98B7587d46B551e5707A46e35eBe5` | `getChallengeTemplate(12).tokens[1]` |
+| SOL        | `0xA4aeF370Be85fb198a74dAA9b61cda9684BC1778` | `getChallengeTemplate(12).tokens[2]` |
+| XRP        | `0xA2799A14e15A93D0263d02BAa5BA4bb377e51908` | `getChallengeTemplate(12).tokens[3]` |
+| LTC        | `0xCD8806f52F48716014075596DaF0128159a43d28` | `getChallengeTemplate(12).tokens[4]` |
+
+**Production Chain**
+
+| Token | Address | Verified via |
+|---|---|---|
+| BTC (WBTC) | `0x9cAaCD673fd5C6C4b3Aa3c4E55e930ca5A4f32fe` | `getChallengeTemplate(0).tokens[0]` |
+| ETH (WETH) | `0x8892549DdcA0f14ee3b4B0dE9A5b6dE5087FE12f` | `getChallengeTemplate(0).tokens[1]` |
+| SOL        | `0xB7e20EE2392f940Df344a1A940c37030DF0363A0` | `getChallengeTemplate(0).tokens[2]` |
+| XRP        | `0xc48566c3A2A4358f34BeF026B1148f1A2cD47856` | `getChallengeTemplate(0).tokens[3]` |
+| LTC        | `0x3845E1d4DCDd0694BB9919F9dd87CF06148eacE3` | `getChallengeTemplate(0).tokens[4]` |
+
+> Note: Production Edge Hour tokens are the same addresses as the main pool. Cross-referenced with `/client/coins` API and on-chain `ChallengeManager.getChallengeTemplate()`.

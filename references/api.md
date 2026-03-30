@@ -557,3 +557,183 @@ Get fee rebate records (points benefit view).
 | `return_rate` | Rebate rate |
 | `total_fees` | Total fees (USD) |
 | `list` | Record list (`return_fees`, `return_rate`, `total_fees`, `created_at`) |
+
+---
+
+## 3.12 Edge Hour Endpoints
+
+Base URL: Production `https://api.deriw.com`, Dev `https://testgmxapi.weequan.cyou`
+
+### `GET /client/edge_hour/templates`
+
+Get all active challenge template list (no request parameters).
+
+**Response `data.list` Element Fields**
+
+| Field | Type | Description |
+|---|---|---|
+| `template_id` | int | Template ID (passed to contract `startChallenge`) |
+| `max_ticket_price` | string | Maximum ticket price (1e6 USDT) |
+| `target_multiplier` | string | Reward multiplier bps (20000=2x) |
+| `duration` | int | Challenge duration (seconds) |
+| `tokens` | string[] | Tradable token address list |
+| `trade_fee` | string | Trading fee bps |
+| `r_target` | string | Profit target bps (60=0.6%) |
+| `r_target_amount` | string | Profit target amount (1e6 USDT, e.g. 60000000=60 USDT) |
+| `dd_max` | string | Max drawdown bps (30=0.3%) |
+| `dd_max_amount` | string | Max drawdown amount (1e6 USDT) |
+| `minimum_holding_period` | int | Minimum holding time (seconds) required for a valid trade |
+| `minimum_trades` | int | Minimum number of valid trades |
+| `max_profit_ratio_per_trade` | string | Max single-trade profit as share of target (bps) |
+| `leverages` | int[] | Max leverage per token (one-to-one with `tokens`) |
+
+---
+
+### `GET /client/edge_hour/lpvault`
+
+Get LPVault global statistics (no request parameters).
+
+**Response `data` Fields**
+
+| Field | Description |
+|---|---|
+| `total_asset_balance` | Total vault assets (1e6 USDT) |
+| `total_potential_payout` | Total potential payout for all active challenges (1e6 USDT) |
+| `max_vault_utilization_bps` | Maximum utilization rate bps (8000=80%) |
+
+---
+
+### `GET /client/edge_hour/challenge/info`
+
+Get user's current/latest challenge info.
+
+**Request Parameters**
+
+| Field | Required | Description |
+|---|---|---|
+| `account` | Yes | User wallet address |
+
+**Response `data` Fields**
+
+| Field | Description |
+|---|---|
+| `has_active_challenge` | Whether user has an ongoing challenge |
+| `need_settlement` | Whether settlement is needed (passed but not claimed, or failed but not confirmed) |
+| `min_trade_value` | Minimum position value (1e6 USDT, from contract) |
+| `challenge` | Challenge details (see ChallengeItem below) |
+| `has_unclose_position` | Whether there are open positions |
+| `failed` | Failure reason (`time_passed`/`trade_count`/`single_trade_cap`/`max_draw_down`) |
+
+**ChallengeItem Fields**
+
+| Field | Description |
+|---|---|
+| `challenge_id` | Challenge ID |
+| `template_id` | Template ID |
+| `status` | Status: 1=Active, 2=Passed, 3=Failed, 4=Claimed |
+| `start_time` / `end_time` | Unix timestamps |
+| `roi` | ROI (bps, ÷100 for percentage, e.g. -101 = -1.01%) |
+| `pnl` | PnL (1e6 USDT) |
+| `trade_count` | Valid trade count |
+| `final_reward` | Estimated reward (1e6 USDT) |
+| `tokens` | Tradable token address list |
+| `token_leverage` | Token address → max leverage map |
+| `r_target` | Profit target bps |
+| `dd_max` | Max drawdown bps |
+| `minimum_trades` | Minimum valid trades |
+| `minimum_holding_period` | Minimum holding time (seconds) |
+
+---
+
+### `GET /client/edge_hour/positions`
+
+Get current open positions in a challenge.
+
+**Request Parameters**: `account` (required), `challenge_id` (required), `page_index`, `page_size`
+
+**Response `data.list` Element Fields**
+
+| Field | Description |
+|---|---|
+| `index_token` | Token address |
+| `is_long` | Direction (long/short) |
+| `size` | Position size (1e6 USDT) |
+| `collateral_size` | Collateral (1e6 USDT) |
+| `leverage` | Actual leverage multiplier |
+| `entry_price` | Average entry price (1e18) |
+| `liquidate_price` | Liquidation price (1e18) |
+| `profit_lose` | Current P&L percentage (string) |
+| `reward_amount` | Profit amount (1e6 USDT) |
+| `profit_limit` | Max single-trade profit cap (1e6 USDT) |
+| `status` | 0=holding time insufficient, 1=holding time met, 2=below single-trade profit cap, 3=single-trade profit cap reached |
+| `trade_fee` | Trading fee (1e6 USDT) |
+| `open_time` | Open time (Unix) |
+| `open_tx_hash` | Open position transaction hash |
+
+---
+
+### `GET /client/edge_hour/close_records`
+
+Get closed position records for a challenge.
+
+**Request Parameters**: `account` (required), `challenge_id` (required), `page_index`, `page_size`
+
+**Response `data.list` Element Fields**
+
+| Field | Description |
+|---|---|
+| `index_token` | Token address |
+| `is_long` | Direction (long/short) |
+| `size` | Position size (1e6 USDT) |
+| `close_price` | Close price (1e18) |
+| `profit_lose` | P&L percentage |
+| `open_time` / `close_time` | Open/close time (Unix) |
+
+---
+
+### `GET /client/edge_hour/user/overview`
+
+Get user historical statistics.
+
+**Request Parameters**: `account` (required)
+
+**Response `data` Fields**
+
+| Field | Description |
+|---|---|
+| `total_challenges` | Total challenge count |
+| `win_rate` | Win rate (%) |
+| `total_profit` | Cumulative rewards (1e6 USDT) |
+| `best_roi` | Best ROI (bps) |
+
+---
+
+### `GET /client/edge_hour/user/challenges`
+
+Get user challenge history list (paginated).
+
+**Request Parameters**: `account` (required), `page_index`, `page_size`
+
+**Response `data.list`**: Each entry is a ChallengeItem (same format as the `challenge` field in `/challenge/info`)
+
+---
+
+### `GET /client/edge_hour/challenge_detail`
+
+Get details for a specified challenge (public, Redis cache 1s).
+
+**Request Parameters**: `challenge_id` (required)
+
+**Response `data`**: ChallengeItem format
+
+---
+
+### `POST /client/edge_hour/challenge/claim`
+
+Notify server that user has claimed (must call contract `claimReward` first).
+
+**Request Body (JSON)**
+
+| Field | Required | Description |
+|---|---|---|
+| `challenge_id` | Yes | Challenge ID (int64) |
