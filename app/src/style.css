@@ -1,0 +1,396 @@
+/* ===== CSS 变量 - 暗色主题 ===== */
+:root,
+[data-theme='dark'] {
+  --bg: #000000;
+  --bg-card: #1c1c1e;
+  --bg-elevated: #2c2c2e;
+  --bg-tertiary: #3a3a3c;
+  --text: #ffffff;
+  --text-muted: rgba(235, 235, 245, 0.6);
+  --text-secondary: rgba(235, 235, 245, 0.3);
+  --border: rgba(84, 84, 88, 0.65);
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --success: #34d399;
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --radius: 12px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+}
+
+/* ===== 基础重置 ===== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 加载画面 ===== */
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== Header ===== */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--border);
+  padding: 0 20px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== 主内容区 ===== */
+.main-content {
+  flex: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  width: 100%;
+}
+
+/* ===== 按钮 ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 9px 18px;
+  transition: background 0.15s, opacity 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 0.5px solid var(--border);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.btn--lg {
+  padding: 14px 32px;
+  font-size: 1rem;
+  width: 100%;
+  border-radius: var(--radius);
+}
+
+.btn--icon {
+  background: transparent;
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  border-radius: var(--radius-xs);
+}
+
+.btn--icon:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+/* ===== 登录页 ===== */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 56px);
+  padding: 24px 20px;
+}
+
+.login-card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-logo {
+  margin-bottom: 24px;
+}
+
+.login-logo-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.login-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+.login-hint {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  margin-top: 16px;
+}
+
+/* ===== Dashboard ===== */
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 28px 0 12px;
+}
+
+.section-title:first-child {
+  margin-top: 0;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ===== Card ===== */
+.card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 12px;
+}
+
+.card-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+/* ===== UserCard ===== */
+.user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.user-id-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
+.user-id-value {
+  font-family: 'SF Mono', 'Fira Mono', 'Cascadia Code', monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.linked-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.linked-account-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-type-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  min-width: 70px;
+  justify-content: center;
+}
+
+.account-name {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+/* ===== WalletCard ===== */
+.wallet-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.wallet-address-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.wallet-address-value {
+  font-family: 'SF Mono', 'Fira Mono', 'Cascadia Code', monospace;
+  font-size: 0.82rem;
+  color: var(--text);
+  word-break: break-all;
+  flex: 1;
+}
+
+.wallet-balance-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.balance-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.balance-loading {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ===== Badges ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.badge--embedded {
+  background: rgba(10, 132, 255, 0.15);
+  color: #409cff;
+}
+
+.badge--external {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.badge--chain {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ===== 复制成功提示 ===== */
+.copy-success {
+  color: var(--success);
+  font-size: 0.78rem;
+}

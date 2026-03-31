@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/constants.ts","./src/main.tsx","./src/components/dashboardpage.tsx","./src/components/header.tsx","./src/components/loginpage.tsx","./src/components/usercard.tsx","./src/components/walletcard.tsx","./src/hooks/usederivbalance.ts"],"version":"5.9.3"}
