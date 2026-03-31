@@ -29,6 +29,7 @@ Based on the user's description, determine the intent and execute the correspond
 | Meme Pool deposit, withdraw | [Workflow E: Meme Pool Operations](#workflow-e-meme-pool-operations) |
 | L2↔L3 asset cross-chain | [Workflow F: Cross-Chain Operations](#workflow-f-cross-chain-operations) |
 | Get API data (market/referral) | [Workflow G: HTTP API Query](#workflow-g-http-api-query) |
+| Edge Hour challenge trading / LP vault | [Workflow H: Edge Hour Operations](#workflow-h-edge-hour-operations) |
 
 ---
 
@@ -376,7 +377,168 @@ const DEV_API_BASE        = 'https://testgmxapi.weequan.cyou';
 const L2_DEPOSIT     = '0xaE7203eBA7E570A6B5C7A303987B6C824dF5A325'; // Production
 const DEV_L2_DEPOSIT = '0x81A88de21De37A025660D746164A9AB013822263'; // Dev
 const USDT_ARB       = '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'; // Arbitrum USDT
+
+// ── Edge Hour ─────────────────────────────────────────────────────────────
+const EDGE_CHALLENGE_MANAGER = '0xBb1785B6A90819C11b8467ff85652661BE0286db'; // Production
+const EDGE_LP_VAULT          = '0x29F463c832C03076ab2cB9734fD6C0e3B135B00b'; // Production
+const EDGE_PRICE_ORACLE      = '0x493De553C9948f463f31249833D4d02D6DF9d0cB'; // Production
+const DEV_EDGE_CHALLENGE_MANAGER = '0x086603940a23464A60ABeBcD887524eD3b0f3150'; // Dev
+const DEV_EDGE_LP_VAULT          = '0x2eB88D51C30708f8539c949855F39861e7f3adB5'; // Dev
+const DEV_EDGE_PRICE_ORACLE      = '0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC'; // Dev
+// ABIs: assets/edge_hour/{ChallengeManager,LPVault,PriceOracle}.json
+// Scripts: scripts/edge_hour/{query-state,start-challenge,open-position,close-position,claim-reward,lpvault-deposit,lpvault-withdraw,query-api}.js
 ```
+
+---
+
+---
+
+## Workflow H: Edge Hour Operations
+
+Use for: Edge Hour challenge trading competition (virtual balance), LP vault deposit/withdraw, query challenge state.
+
+> **Edge Hour Overview**: Users pay a ticket fee (USDT) to enter a challenge. They trade with a virtual balance (10,000 USDT) within a time limit. If they meet the profit target, they claim a USDT reward from the LP vault. LPs deposit USDT into the vault to earn fee income.
+
+### Contracts
+
+| Contract | Production | Dev | Purpose |
+|---|---|---|---|
+| ChallengeManager | `0xBb1785B6A90819C11b8467ff85652661BE0286db` | `0x086603940a23464A60ABeBcD887524eD3b0f3150` | Challenge lifecycle, virtual trading |
+| LPVault | `0x29F463c832C03076ab2cB9734fD6C0e3B135B00b` | `0x2eB88D51C30708f8539c949855F39861e7f3adB5` | LP deposit/withdraw (whitelist required) |
+| PriceOracle | `0x493De553C9948f463f31249833D4d02D6DF9d0cB` | `0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC` | Token prices (1e18 precision) |
+
+**ABI files**: `assets/edge_hour/ChallengeManager.json`, `LPVault.json`, `PriceOracle.json`
+
+### Using Scripts
+
+```bash
+# Query contract state + templates (no private key needed)
+DEV=true node scripts/edge_hour/query-state.js [account]
+
+# Start a challenge (pay ticket fee in USDT)
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/start-challenge.js <templateId> <ticketFee_usdt>
+
+# Open a virtual position (no token transfer, uses virtual balance)
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/open-position.js <challengeId> <indexToken> <sizeDelta_usdt> <collateral_usdt> <isLong>
+
+# Close a virtual position
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/close-position.js <challengeId> <indexToken> <isLong>
+
+# Claim reward after challenge passes
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/claim-reward.js <challengeId>
+
+# LPVault deposit (requires whitelist by vault owner)
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/lpvault-deposit.js <amount_usdt>
+
+# LPVault withdraw
+DEV=true PRIVATE_KEY=0x... node scripts/edge_hour/lpvault-withdraw.js <amount_usdt | all>
+
+# Batch API query (templates, challenge info, positions, history)
+DEV=true node scripts/edge_hour/query-api.js <account> [challengeId]
+```
+
+### Key Parameters & Precision
+
+| Parameter | Precision | Notes |
+|---|---|---|
+| `ticketFee` | `1e6` | Must be multiple of `ticketUnit` (5 USDT); max = template `maxTicketFee` |
+| `sizeDelta` | `1e6` | Virtual position size in USDT (e.g. 1000 USDT = `1000000000`) |
+| `collateralDelta` | `1e6` | Virtual collateral (e.g. 100 USDT = `100000000`) |
+| Price (oracle) | `1e18` | `oracle.getPrice(indexToken)` returns price * 1e18 |
+| Balance | `1e6` | `currentBalance`, `cappedEquity` from `getChallengeState` |
+| LP shares | `1e18` | `vault.balanceOf(account)` |
+
+### Challenge Status Enum
+
+| Value | Name | Description |
+|---|---|---|
+| `0` | None | Not started / does not exist |
+| `1` | Active | Challenge in progress |
+| `2` | Passed | Profit target met, reward claimable |
+| `3` | Failed | Time expired or drawdown exceeded |
+| `4` | Claimed | Reward already claimed |
+
+### ChallengeManager Key Methods
+
+```javascript
+// Check if user has active challenge
+const [exists, challengeId] = await cm.getActiveChallengeId(userAddress);
+
+// Get challenge template list
+const len = await cm.getChallengeTemplateLength();
+const template = await cm.getChallengeTemplate(templateId); // [params_tuple, isActive]
+
+// Start challenge (approve USDT first; ticketFee = n × ticketUnit = n × 5 USDT)
+await cm.startChallenge(templateId, ticketFee);
+
+// Open virtual position (no USDT transfer)
+await cm.increasePosition({ challengeId, indexToken, sizeDelta, collateralDelta, isLong });
+
+// Close virtual position (full close)
+await cm.closePosition({ challengeId, indexToken, isLong });
+
+// Get current challenge state
+const state = await cm.getChallengeState(challengeId);
+// state[1]=status, state[3]=tradeCount, state[5]=expiryTime, state[7]=currentBalance(1e6)
+
+// Claim reward (status must be 2=Passed)
+await cm.claimReward(challengeId);
+
+// Get position key + position data
+const key = await cm.getPositionKey(challengeId, indexToken, isLong);
+const pos = await cm.getPosition(challengeId, key); // pos.size, pos.averagePrice, pos.collateral
+```
+
+### LPVault Key Methods
+
+```javascript
+// deposit USDT (requires whitelist)
+await vault.deposit(amountUsdt); // 1e6 USDT
+
+// withdraw USDT (burns LP shares)
+await vault.withdraw(amountUsdt); // query maxWithdraw(user) first
+
+// query stats
+const stats = await vault.getStatistics(); // totalFees, totalRewards, netProfit, currentBalance, pending
+const sharePrice = await vault.sharePrice(); // 1e18
+```
+
+### Edge Hour HTTP API
+
+```bash
+# Template list
+GET /client/edge_hour/templates
+
+# LPVault stats
+GET /client/edge_hour/lpvault
+
+# User's current/latest challenge
+GET /client/edge_hour/challenge/info?account=<address>
+
+# Open positions in a challenge
+GET /client/edge_hour/positions?account=<address>&challenge_id=<id>
+
+# Closed position history
+GET /client/edge_hour/close_records?account=<address>&challenge_id=<id>
+
+# User challenge history (paginated)
+GET /client/edge_hour/user/challenges?account=<address>&page_index=1&page_size=20
+
+# User lifetime stats (win rate, total profit, best ROI)
+GET /client/edge_hour/user/overview?account=<address>
+
+# Challenge detail (public, cached 1s)
+GET /client/edge_hour/challenge_detail?challenge_id=<id>
+```
+
+### Important Notes
+
+1. **Virtual trading**: `increasePosition`/`closePosition` do NOT transfer USDT — all P&L is tracked as virtual balance in the contract
+2. **Minimum trade value**: `cm.minPositionValueUsd()` (default 10 USDT at 1e6), `sizeDelta` must exceed this
+3. **Leverage limit**: `cm.challengeMaxLeverage(challengeId, indexToken)` — template defines max leverage (e.g. 2000 = 20x)
+4. **Minimum hold time**: Template `minimum_holding_period` seconds between open and close counts as a valid trade
+5. **LPVault whitelist**: `vault.deposit()` requires address in `vault.whitelist(addr)` — must be added by vault owner
+6. **ticketUnit**: Always 5 USDT; ticketFee must be an exact multiple (5, 10, 15 ... up to template max)
 
 ---
 
@@ -385,5 +547,6 @@ const USDT_ARB       = '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9'; // Arbitrum
 - `references/addresses.md` — Full contract addresses + token addresses
 - `references/contracts.md` — Detailed contract method descriptions
 - `references/api.md` — Complete HTTP API documentation
-- `scripts/` — Ready-to-run ethers.js v6 example scripts (8 total)
-- `assets/` — Contract ABI JSON files (36 total)
+- `scripts/` — Ready-to-run ethers.js v6 example scripts (8 total + 8 edge_hour)
+- `scripts/edge_hour/` — Edge Hour specific scripts (8 total)
+- `assets/` — Contract ABI JSON files (36 total + 3 edge_hour)

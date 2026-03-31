@@ -147,6 +147,48 @@ export DEV=true
 
 ## Feature Overview
 
+### Edge Hour Challenge Trading
+
+```
+/deriw start an Edge Hour challenge with template 12
+/deriw open BTC long in Edge Hour challenge 35329
+/deriw close my Edge Hour BTC position
+/deriw claim Edge Hour reward for challenge 35329
+/deriw deposit 100 USDT into Edge Hour LP vault
+```
+
+Corresponding scripts:
+
+```bash
+# Query state (templates, vault, user challenge)
+DEV=true node scripts/edge_hour/query-state.js <account>
+
+# Start challenge (templateId from query-state; ticketFee must be multiple of 5 USDT)
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/start-challenge.js <templateId> <ticketFee_usdt>
+
+# Open virtual position (no token transfer)
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/open-position.js <challengeId> <indexToken> <sizeDelta_usdt> <collateral_usdt> <isLong>
+
+# Close virtual position
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/close-position.js <challengeId> <indexToken> <isLong>
+
+# Claim reward (challenge must be status=2 Passed)
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/claim-reward.js <challengeId>
+
+# LP vault deposit (whitelist required — contact vault owner)
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/lpvault-deposit.js <amount_usdt>
+
+# LP vault withdraw
+DEV=true PRIVATE_KEY=xxx node scripts/edge_hour/lpvault-withdraw.js <amount_usdt | all>
+
+# Batch API query
+DEV=true node scripts/edge_hour/query-api.js <account> [challengeId]
+```
+
+**Key precision**: all amounts (ticketFee, sizeDelta, collateral, balance) use `1e6` (USDT unit). Prices from `PriceOracle.getPrice()` use `1e18`.
+
+---
+
 ### Query
 
 ```
@@ -267,7 +309,9 @@ DEV=true PRIVATE_KEY=xxx node scripts/crosschain-withdraw.js <amount_usdt>
 - [`references/contracts.md`](references/contracts.md) — Contract method descriptions
 - [`references/api.md`](references/api.md) — HTTP API documentation
 - [`scripts/`](scripts/) — Ready-to-run ethers.js v6 scripts (8 total)
+- [`scripts/edge_hour/`](scripts/edge_hour/) — Edge Hour specific scripts (8 total)
 - [`assets/`](assets/) — Contract ABI JSON files
+- [`assets/edge_hour/`](assets/edge_hour/) — Edge Hour ABI files (ChallengeManager, LPVault, PriceOracle)
 
 ---
 
@@ -276,3 +320,5 @@ DEV=true PRIVATE_KEY=xxx node scripts/crosschain-withdraw.js <amount_usdt>
 - **Private key security**: `PRIVATE_KEY` is only passed via environment variable, never write it to any file
 - **Devnet**: Add `DEV=true` to switch to testnet; devnet has `gasPrice=0`, no ETH required
 - **Cross-chain arrival time**: Deposits 5-15 minutes, withdrawals 15-60 minutes (Arbitrum confirmation)
+- **Edge Hour LPVault**: `deposit()` requires whitelist by vault owner — contact team to be whitelisted
+- **Edge Hour virtual trading**: `increasePosition`/`closePosition` do NOT move real tokens; all balances are tracked on-chain as virtual equity
