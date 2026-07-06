@@ -30,6 +30,7 @@ Based on the user's description, determine the intent and execute the correspond
 | L2↔L3 asset cross-chain | [Workflow F: Cross-Chain Operations](#workflow-f-cross-chain-operations) |
 | Get API data (market/referral) | [Workflow G: HTTP API Query](#workflow-g-http-api-query) |
 | Edge Hour challenge trading / LP vault | [Workflow H: Edge Hour Operations](#workflow-h-edge-hour-operations) |
+| Room mode (host liquidity pool) query / create | [Workflow I: Room Operations](#workflow-i-room-operations) |
 
 ---
 
@@ -70,8 +71,8 @@ const positions = await reader.getPositions(vault, account, [USDT], [WBTC], [tru
 | Contract | Address | Purpose |
 |---|---|---|
 | Vault | `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653` | Position data |
-| Reader | `0x84C1F027f05E2c944D0Ccee94d29C34Ea3Fcf9eD` | Batch reads |
-| VaultReader | `0x1A635dCb4254965432271b49D2E347615c70383a` | Token comprehensive data |
+| Reader | `0x13633eC2B765fD9fFcc81C3c13daF91D9E4D6d00` | Batch reads |
+| VaultReader | `0x06C823B1fDb7f27a5116aAC8eA938ddFf1C03Fdb` | Token comprehensive data |
 | VaultPriceFeed | `0xEC7046731d5ef62Ce62C0291b7dF891E62aECC7E` | On-chain prices |
 | FastPriceFeed | `0x43948B78477963d7b408A0E27Ae168584C6E07A9` | Fast prices |
 
@@ -368,8 +369,13 @@ const DEV_USDT            = '0x12530882c64B1c22dAdf2F60639145029c5081Da'; // Dev
 const DEV_FUND_ROUTER     = '0x324D847bc335032855972DA8d2f825BF7df14dCD';
 const DEV_POOL_DATA       = '0xf0290fAc0B56E0F9EB09abdc24C0713Ce4D96116';
 const DEV_MEME_ROUTER     = '0xeDa46Dc1f8A64C7F5C811cb2dE1cC775b04A0195';
+const DEV_MEME_DATA       = '0xa4E451aE6C7e80E5587949CB557BeB700f0500A1';
+const DEV_MEME_FACTORY    = '0x4C74F6e60736130247c8b53807b627FeD558cA77'; // updated
 const DEV_L3_WITHDRAW     = '0x32068069f13191B57c03Eee8531a8C82b26d12B9';
 const DEV_VAULT_PRICE_FEED= '0x843a577B32F280518E8dF305D8AD469111279135';
+const DEV_VAULT_READER    = '0xfe36652B1456161597BbfE5365f3c55dDC3d139C'; // updated
+const DEV_PHASE           = '0xaA71758134ea73Ad47ff04104b96986C5C3BBd16'; // liquidity / OI (room mode)
+const DEV_SLIPPAGE        = '0x3600Cc37027146d0E9cf0E146D21390CFF474d75';
 const DEV_RPC             = 'https://rpc.dev.deriw.com';
 const DEV_API_BASE        = 'https://testgmxapi.weequan.cyou';
 
@@ -387,6 +393,19 @@ const DEV_EDGE_LP_VAULT          = '0x2eB88D51C30708f8539c949855F39861e7f3adB5';
 const DEV_EDGE_PRICE_ORACLE      = '0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC'; // Dev
 // ABIs: assets/edge_hour/{ChallengeManager,LPVault,PriceOracle}.json
 // Scripts: scripts/edge_hour/{query-state,start-challenge,open-position,close-position,claim-reward,lpvault-deposit,lpvault-withdraw,query-api}.js
+
+// ── Room Mode ─────────────────────────────────────────────────────────────
+// Room mode has NO dedicated contracts — it reuses these existing ones for its
+// on-chain reads/writes. Data surface is mostly HTTP (/client/room/*). See Workflow I.
+//                          Production                                     Dev
+const ROOM_PHASE        = '0x463c7e40A4eE5e4E2072055aFa14a15E88b38F5a'; // dev 0xaA71758134ea73Ad47ff04104b96986C5C3BBd16 — getValue/getLongShortValue
+const ROOM_MEME_DATA    = '0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8'; // dev 0xa4E451aE6C7e80E5587949CB557BeB700f0500A1 — getChannelOutAmount (pool equity)
+const ROOM_MEME_FACTORY = '0x363d1d8a71A5e1E6F6528432A59541bb2848B07e'; // dev 0x4C74F6e60736130247c8b53807b627FeD558cA77 — channel pool (room) create/config
+const ROOM_SLIPPAGE     = '0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E'; // dev 0x3600Cc37027146d0E9cf0E146D21390CFF474d75 — getTokenMaxLeverage
+// Vault (poolAmounts) and VaultUtils reused from the core constants above.
+// Room pool address per host lives server-side (MemeFactory.createChannelPool); query via /client/room/pool-status.
+// ABIs: assets/room/{Phase,Slippage,MemeFactory,MemeData,Vault,VaultUtils}.json
+// Scripts: scripts/room/{query-api,query-state,pre-create}.js
 ```
 
 ---
@@ -542,11 +561,85 @@ GET /client/edge_hour/challenge_detail?challenge_id=<id>
 
 ---
 
+---
+
+## Workflow I: Room Operations
+
+Use for: querying a host's **room** (channel liquidity pool) — deposits, TVL, pool equity, traders, positions, fee/TVL trends, pool status — and applying to become a host (create/reopen a room).
+
+> **Room Overview**: A "room" is a **host-created isolated liquidity pool** (an on-chain *channel pool*). Traders (invitees) trade against the room's liquidity; the host earns a share of trading fees. A host has at most one active room, keyed by the **host/creator address** (`account`). Lifecycle: PreCreate → Created → Running → Cooldown → Closed.
+
+> **Not a new contract set**: Room mode is mostly an **HTTP read layer** plus one signed write (`pre-create`). On-chain reads reuse existing contracts — **Phase** (liquidity/OI), **MemeData** (`getChannelOutAmount` → pool equity), **MemeFactory** (channel-pool create/config), **Vault** (`poolAmounts` → TVL lockup), **VaultUtils**, **Slippage**. The per-room pool address lives server-side (from `MemeFactory.createChannelPool`); fetch it via `/client/room/pool-status`.
+
+### Contracts (reused — no dedicated deployment)
+
+| Contract | Production | Dev | Room use |
+|---|---|---|---|
+| Phase | `0x463c7e40A4eE5e4E2072055aFa14a15E88b38F5a` | `0xaA71758134ea73Ad47ff04104b96986C5C3BBd16` | `getValue`, `getLongShortValue` (liquidity / OI) |
+| MemeData | `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8` | `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1` | `getChannelOutAmount` (pool equity → USDT) |
+| MemeFactory | `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e` | `0x4C74F6e60736130247c8b53807b627FeD558cA77` | `createChannelPool`, `getChannelPoolTargetToken`, `channelOwnerPool` |
+| Slippage | `0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E` | `0x3600Cc37027146d0E9cf0E146D21390CFF474d75` | `getTokenMaxLeverage` |
+| Vault | `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653` | `0x75Da7523f99bA38a8cAD831EbE2F09aDF5896d89` | `poolAmounts` (TVL lockup, 1e6) |
+
+**ABI files**: `assets/room/{Phase,Slippage,MemeFactory,MemeData,Vault,VaultUtils}.json`
+
+### Using Scripts
+
+```bash
+# Batch-query all room HTTP endpoints for a host (detail, traders, positions, close history, LP changes, fee/TVL, pool-status, coins)
+DEV=true node scripts/room/query-api.js <hostAccount>
+
+# On-chain reads behind room (Phase liquidity/OI, Slippage max leverage, pool target token, Vault TVL lockup)
+DEV=true node scripts/room/query-state.js <hostAccount> [indexToken] [isLong]
+
+# Apply to become a host / (re)open a room — personal_sign + POST /client/room/pre-create
+DEV=true PRIVATE_KEY=0x... node scripts/room/pre-create.js <capacityBaseMode>   # 1=Principal, 2=Equity
+```
+
+### HTTP Endpoints
+
+All keyed by `account` = **host address**. Success `code: 0`; room-not-found `code: 100009`. Base URL: prod `https://api.deriw.com`, dev `https://testgmxapi.weequan.cyou`.
+
+```bash
+GET  /client/room/detail?account=<host>                    # deposits, TVL, pool equity, OI, traders, PnL, revenue, health
+GET  /client/room/pool-status?account=<host>               # status, capacity_base_mode, pool addr, withdrawal limits
+GET  /client/room/traders?account=<host>&page_index=1&page_size=20
+GET  /client/room/open-positions?account=<host>&page_index=1&page_size=20
+GET  /client/room/close-position-history?account=<host>&page_index=1&page_size=20
+GET  /client/room/lp-change?account=<host>&page_index=1&page_size=20   # host add/remove liquidity events
+GET  /client/room/fee?account=<host>&limit=10              # per-day fee-share trend
+GET  /client/room/tvl?account=<host>&limit=10              # per-day TVL trend
+GET  /client/room/coins?account=<host>                     # tradeable coins in the room
+GET  /client/room/liquidity?account=<host>&index_token=<addr>&is_long=<bool>  # room vs deriwpool available liquidity
+GET  /client/room/blocked-users?account=<host>&page_index=1&page_size=20
+POST /client/room/pre-create   body { account, capacity_base_mode, message }  # create/reopen (signed)
+```
+
+**Public OpenAPI mirrors** (no auth, snake_case, `IsHexAddress` validated): `GET /openapi/v1/rooms/{open_positions,close_position_history,lp_change,fee,tvl,detail,traders}` — identical response shapes to `/client/room/*`. Full field lists in `references/api.md` §3.13.
+
+### Key Parameters & Notes
+
+| Item | Value / Precision | Notes |
+|---|---|---|
+| `account` | address | The **host/creator** address (NOT a trader wallet) — locates the active room |
+| `capacity_base_mode` | `1`=Principal, `2`=Equity | Room capacity accounting mode (pre-create) |
+| pre-create `message` | hex | `personal_sign("Apply to become a host")` (EIP-191); backend `VerifyPersonalSignature` |
+| amounts / PnL / fees | string | Already precision-shifted by the server; display as-is |
+| `pool_equity`, `total_tvl` (detail) | decimal string | pool equity = `MemeData.getChannelOutAmount`; TVL = `Vault.poolAmounts` (1e6) |
+| pagination | `page_size` ≤ 100 | default 20; openapi clamps offset ≤ 10000 |
+
+1. **Read-mostly**: every endpoint except `pre-create` is a read. `pre-create` triggers backend room creation (a real state change) — run only as the host.
+2. **One room per host**: located via creator address; if none exists, detail/fee/tvl return `param err` (100438) on `/client`, unified `100009` on `/openapi`.
+3. **can_remove_liquidity gate**: `pool-status.can_remove_liquidity` requires cooldown reached, chain not paused, no pending rebates, all orders cancelled, positions cleared.
+
+---
+
 ## References
 
 - `references/addresses.md` — Full contract addresses + token addresses
 - `references/contracts.md` — Detailed contract method descriptions
 - `references/api.md` — Complete HTTP API documentation
-- `scripts/` — Ready-to-run ethers.js v6 example scripts (8 total + 8 edge_hour)
+- `scripts/` — Ready-to-run ethers.js v6 example scripts (8 top-level + 8 edge_hour + 3 room)
 - `scripts/edge_hour/` — Edge Hour specific scripts (8 total)
-- `assets/` — Contract ABI JSON files (36 total + 3 edge_hour)
+- `scripts/room/` — Room mode scripts (`query-api`, `query-state`, `pre-create`)
+- `assets/` — Contract ABI JSON files (38 top-level + 3 edge_hour + 6 room)

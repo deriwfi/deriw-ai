@@ -90,7 +90,7 @@
 | FastPriceFeed | `0x43948B78477963d7b408A0E27Ae168584C6E07A9` |
 | PriceFeed | `0x83CA1aA2Bc20e41287154650e4161dC995278E1D` |
 | VaultUtils | `0xfC21471Ef1D98A4e34B91A1EDeCB523ba4EA83D9` |
-| DataReader | `0xf0A6bd9feb742E56C39A7df4544A093A12858c64` |
+| DataReader | `0x934B75A4f576738c1392a2af1BF8be1FBf52b53d` |
 | GlpManager | `0xa61ddD4Cf723cDB339008021aD05e5a1BE140F3f` |
 
 ### Batch Reads
@@ -98,8 +98,8 @@
 | Contract | Address |
 |---|---|
 | OrderBookReader | `0x239e5A9813C469D86D3322133e3c1AbA77A412f8` |
-| Reader | `0x84C1F027f05E2c944D0Ccee94d29C34Ea3Fcf9eD` |
-| VaultReader | `0x1A635dCb4254965432271b49D2E347615c70383a` |
+| Reader | `0x13633eC2B765fD9fFcc81C3c13daF91D9E4D6d00` |
+| VaultReader | `0x06C823B1fDb7f27a5116aAC8eA938ddFf1C03Fdb` |
 
 ### Token Data & Configuration
 
@@ -267,7 +267,7 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 | Contract | Address |
 |---|---|
 | Reader | `0xb49676cF7ff87a42dae3129997688333886AC126` |
-| VaultReader | `0xEf4a5Dd7418Fd53508E94e3f7b8A977425bE70d4` |
+| VaultReader | `0xfe36652B1456161597BbfE5365f3c55dDC3d139C` |
 | OrderBookReader | `0xF2cc684b2bD5D9F114F48e80aD06036797A94660` |
 
 #### Token Data & Configuration
@@ -276,8 +276,10 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 |---|---|
 | CoinData | `0xC75DC20185d2aB64d5faBF227285AB171D50D825` |
 | Slippage | `0x3600Cc37027146d0E9cf0E146D21390CFF474d75` |
+| Phase | `0xaA71758134ea73Ad47ff04104b96986C5C3BBd16` |
 | GLP | `0x91A74B8bf30dfe0DB611800927Dee13E28808218` |
 | LpToken | `0xCaf5c59286Cd3B38db3d9Be1d2e47538D44Ed060` |
+| NativeToken (WETH/WBNB) | `0x1c409505CAb9F162026c5eb8ABee62ad347BB04D` |
 
 #### Fund Pool V2
 
@@ -296,7 +298,7 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 |---|---|
 | MemeRouter | `0xeDa46Dc1f8A64C7F5C811cb2dE1cC775b04A0195` |
 | MemeData | `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1` |
-| MemeFactory | `0x52a87ef53C69235EB3Ac0559B642395618f47Ffd` |
+| MemeFactory | `0x4C74F6e60736130247c8b53807b627FeD558cA77` |
 | MemeRisk | `0x141C93DE887DaC44569a9F3FE7dd1210281D5dbC` |
 | MemeErrorContract | `0xf2cF85c7BF91900172690680C96c918348190881` |
 
@@ -320,6 +322,7 @@ String enum values used in cross-chain scripts and EIP-712 signatures. Update he
 | ErrorContractV2 | `0xe3c2e0Fa6F93C6d3616c8eE6F696dAa0d91E3e6f` |
 | VaultErrorController | `0x14847B61deB346db6a3997bA666A0e1E6a8A4F1E` |
 | Timelock | `0x7bC076Ef7574e327143D1bbeCB41316373a5CEFc` |
+| GnosisSafe | `0x5f1B197A82fC1148A02Ea55B3BEF529f78D64151` |
 | **UserL3ToL2Router** | `0x32068069f13191B57c03Eee8531a8C82b26d12B9` |
 
 #### Cross-Chain Bridge (Arbitrum L2)

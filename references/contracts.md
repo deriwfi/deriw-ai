@@ -177,7 +177,7 @@ Address: `0xfC21471Ef1D98A4e34B91A1EDeCB523ba4EA83D9`
 
 ## DataReader (On-Chain Data Aggregated Read)
 
-Address: `0xf0A6bd9feb742E56C39A7df4544A093A12858c64`
+Address: `0x934B75A4f576738c1392a2af1BF8be1FBf52b53d`
 
 | Method | Parameters | Description |
 |---|---|---|
@@ -345,7 +345,7 @@ Address: `0x239e5A9813C469D86D3322133e3c1AbA77A412f8`
 
 ## Reader (On-Chain Data Batch Read)
 
-Address: `0x84C1F027f05E2c944D0Ccee94d29C34Ea3Fcf9eD`
+Address: `0x13633eC2B765fD9fFcc81C3c13daF91D9E4D6d00`
 
 | Method | Parameters | Description |
 |---|---|---|
@@ -359,7 +359,7 @@ Address: `0x84C1F027f05E2c944D0Ccee94d29C34Ea3Fcf9eD`
 
 ## VaultReader (Vault Extended Read)
 
-Address: `0x1A635dCb4254965432271b49D2E347615c70383a`
+Address: `0x06C823B1fDb7f27a5116aAC8eA938ddFf1C03Fdb`
 
 | Method | Parameters | Description |
 |---|---|---|
@@ -751,3 +751,62 @@ const oracle = new ethers.Contract(PRICE_ORACLE_ADDR, ABI, provider);
 const rawPrice = await oracle.getPrice(WBTC_ADDR);
 console.log('BTC price:', ethers.formatEther(rawPrice), 'USD'); // formatEther = /1e18
 ```
+
+---
+
+## Room Mode (channel pools)
+
+Room mode ("channel pools") has **no dedicated contract deployment** — it reuses the contracts below.
+A room is a host-created isolated liquidity pool; its per-room pool address is produced by
+`MemeFactory.createChannelPool` and tracked server-side (query via `GET /client/room/pool-status`).
+Most room data is served over HTTP (see `references/api.md` §3.13); these are the on-chain reads behind it.
+ABIs: `assets/room/{Phase,Slippage,MemeFactory,MemeData,Vault,VaultUtils}.json`.
+
+### Phase (liquidity / open-interest values)
+
+Address: Production `0x463c7e40A4eE5e4E2072055aFa14a15E88b38F5a` · Dev `0xaA71758134ea73Ad47ff04104b96986C5C3BBd16`
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `getValue(user, indexToken, isLong)` | address, address, bool | `uint256, uint256` | Available liquidity components for a position |
+| `getLongShortValue(indexToken)` | address | `int256 long, int256 short` | Aggregate long/short value (OI / PnL basis) |
+| `getIndextokenValue(indexToken)` | address | `uint256` | Index-token aggregate value |
+| `getPoolRealTimeNetValue(indexToken, tokenOut, glpAmount)` | address, address, uint256 | `uint256` | Real-time net value for a pool amount |
+
+### Slippage (per-token leverage)
+
+Address: Production `0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E` · Dev `0x3600Cc37027146d0E9cf0E146D21390CFF474d75`
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `getTokenMaxLeverage(indexToken)` | address | `uint256` | Max leverage (10000 = 1x; e.g. 2000000 = 200x) |
+| `getPositionLeverage(account, collateralToken, indexToken, isLong)` | address×3, bool | `uint256` | Current position leverage |
+| `tokenMaxLeverage(indexToken)` | address | `uint256` | Raw stored max-leverage mapping |
+
+### MemeData — channel (room) methods
+
+Address: Production `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8` · Dev `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1`
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `getChannelOutAmount(indexToken, tokenOut, amount)` | address, address, uint256 | `uint256 ×4` (out, total, …) | Convert channel-pool LP amount → USDT; **pool equity** basis (pass `poolTargetToken`, USDT, `lp_total_supply`) |
+| `getChannelGlpAmount(indexToken, collateralToken, amount)` | address, address, uint256 | `uint256` | GLP amount for a channel deposit |
+| `channelUserInfo(user, pool, id)` | address, address, uint256 | `uint256 ×3` | Per-user channel-pool position info |
+
+### MemeFactory — channel (room) methods
+
+Address: Production `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e` · Dev `0x4C74F6e60736130247c8b53807b627FeD558cA77`
+
+| Method | Parameters | Returns | Description |
+|---|---|---|---|
+| `createChannelPool(amount, mode)` | uint256, uint256 | — | Create a room channel pool (mode 1=Principal, 2=Equity) |
+| `depositChannel(amount)` / `claimChannel(amount)` | uint256 | — | Host add liquidity / claim |
+| `channelOwnerPool(host)` | address | `address` | Host → their channel-pool address |
+| `getChannelPoolTargetToken(pool)` | address | `address, address` | Pool → (poolTargetToken, mappedPoolTargetToken) |
+| `getChannelState(user, indexToken)` | address, address | `address pool, address owner, address mappedToken, uint256 freezeTime, bool isClose, bool isPause, bool isBlacklisted` | Channel state for a user/token |
+| `channelPoolToken(pool)` / `channelPoolMode(pool)` / `channelPoolIsClose(pool)` | address | address / uint256 / bool | Pool token, capacity mode, closed flag |
+| `setChannelPoolConfig(perWithdrawRate, withdrawalNumber, windowTime)` | uint256×3 | — | Global withdrawal limits (admin) |
+
+> **Vault** (`poolAmounts(poolTargetToken, USDT)` → TVL lockup, 1e6) and **VaultUtils** (`getPositionFee`)
+> are the same core contracts documented above; room reuses them with the room's `poolTargetToken` /
+> mapped index tokens.
