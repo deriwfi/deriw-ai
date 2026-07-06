@@ -63,6 +63,9 @@
 | `/client/invite_return/v2/set_return_rate` | POST | Set subordinate rebate rate |
 | `/client/invite_return/v2/invite_friends` | GET | Invite friends list and summary |
 | `/client/point_benefit/return_fees_records` | GET | Points benefit rebate records |
+| `/client/edge_hour/*` | GET/POST | Edge Hour challenge / LP vault (see §3.12) |
+| `/client/room/*` | GET/POST | Room mode (host liquidity pool) data (see §3.13) |
+| `/openapi/v1/rooms/*` | GET | Public room mode mirrors (see §3.13) |
 
 ---
 
@@ -737,3 +740,133 @@ Notify server that user has claimed (must call contract `claimReward` first).
 | Field | Required | Description |
 |---|---|---|
 | `challenge_id` | Yes | Challenge ID (int64) |
+
+---
+
+## 3.13 Room Mode Endpoints
+
+Room mode = **host-created isolated liquidity pool** ("channel pool"). Every endpoint is keyed by
+`account` = the **host/creator address** (NOT a trader wallet); it locates the host's single active room.
+
+- Success: `code: 0`, payload in `data`. Room not found: `code: 100009`.
+- `/client/room` uses kebab-case; the public `/openapi/v1/rooms` mirrors use snake_case, add
+  `IsHexAddress` validation on `account`, and clamp pagination (`page_size` ≤ 100, offset ≤ 10000).
+- Amounts / prices / PnL / fees are returned as **strings, already precision-shifted** by the server.
+- Base URL: Production `https://api.deriw.com`, Dev `https://testgmxapi.weequan.cyou`.
+
+### `GET /client/room/detail`
+
+Room overview aggregation. **Param**: `account` (host, required).
+
+**Response `data`** (`GetRoomDetailOut`):
+
+| Field | Description |
+|---|---|
+| `net_deposits` / `net_deposits_change_percent` | Net host deposits + MoM change ratio |
+| `total_deposits` / `total_deposits_change_percent` | Gross deposits + change ratio |
+| `withdrawable_amount` | Currently withdrawable |
+| `pool_equity` / `pool_equity_change_percent` | Pool equity (`MemeData.getChannelOutAmount`) + change |
+| `total_tvl` | Vault lockup (`Vault.poolAmounts`) |
+| `total_reversed_oi` / `total_reversed_oi_percent` | Reversed (hedged) open interest |
+| `max_oi` / `total_available_oi` | Max & available OI capacity |
+| `active_trader` / `total_volume` | Active trader count, cumulative volume |
+| `realized_pnl` / `net_revenue` | Room realized PnL, host net revenue |
+| `room_health` | `{ utilization_rate, risk_exposure, risk_exposure_rate }` |
+
+Contains multiple on-chain view calls — on failure returns whole error (no partial data).
+
+### `GET /client/room/pool-status`
+
+Room status + withdrawal gating. **Param**: `account` (host, required).
+
+**Response `data`** (`GetRoomPoolStatusOut`):
+
+| Field | Description |
+|---|---|
+| `status` | 0=None, 1=PreCreate, 2=Created, 3=Running, 4=Cooldown, 5=Closed |
+| `capacity_base_mode` | 1=Principal, 2=Equity |
+| `pool` | Room channel-pool contract address |
+| `can_remove_liquidity` | True only when cooldown reached, chain not paused, no pending rebates, all orders cancelled, positions cleared |
+| `withdrawal_limit` / `total_withdrawal_number` | Max withdrawals per window / lifetime count |
+| `last_withdrawal_time` / `withdrawal_window_time` | Last withdrawal ts (s) / window length (s) |
+
+### `GET /client/room/traders`
+
+Trader leaderboard for the room. **Params**: `account`, `page_index`, `page_size` (≤100, default 20).
+
+**Response `data`** (`RoomTradersResp`): `{ items[], total, page_index, page_size }`, item fields:
+`account`, `total_volume`, `win_rate`, `total_fee`, `unreleased_pnl`, `released_pnl`, `managed_fee`.
+
+### `GET /client/room/open-positions`
+
+Open positions in the room (host-view cache). **Params**: `account` + pagination.
+
+**Item** (`RoomOpenPositionItem`): `account`, `market`, `index_token`, `direction`, `leverage`,
+`average_price`, `now_price`, `liquidation_price`, `collateral_size`, `size_delta`, `unreleased_pnl`.
+
+### `GET /client/room/close-position-history`
+
+Closed positions (incl. force-close / liquidation flags & fee share). **Params**: `account` + pagination.
+
+**Item** (`RoomClosePositionItem`): `account`, `market`, `direction`, `leverage`, `average_price`,
+`close_price`, `collateral_size`, `size_delta`, `released_pnl`, `fee_share`, `time`, `is_force_close`,
+`is_liq`, `tx_hash`.
+
+### `GET /client/room/lp-change`
+
+Host add/remove-liquidity events (on-chain LP events). **Params**: `account` + pagination.
+
+**Item** (`RoomLPChangeItem`): `account`, `amount`, `type` (`deposit`/`withdraw`), `symbol`,
+`contract_address`, `status` (`pending`/`succeed`/`failed`), `time`.
+
+### `GET /client/room/fee`
+
+Per-natural-day fee-share trend. **Params**: `account`, `limit` (days, default 10, no cap).
+
+**Response `data`** (`GetRoomFeeOut`): `{ items: [ { day: "2026-07-01", volume: "10.5" } ] }`.
+Window = today back `limit-1` days; days before room reopen are `0`.
+
+### `GET /client/room/tvl`
+
+Per-natural-day TVL trend (history from daily snapshot, today from chain). **Params**: `account`, `limit`.
+
+**Response `data`** (`GetRoomTVLOut`): `{ items: [ { day: "2026-07-01", volume: "20000" } ] }`.
+
+### `GET /client/room/coins`
+
+Tradeable coins in the room (platform coins filtered via channel-token mapping). **Param**: `account`.
+Response shape matches `/client/coins` (`{ list: [...] }`) with room channel-token addresses substituted.
+
+### `GET /client/room/liquidity`
+
+Available liquidity for a prospective trade: room pool vs main deriwpool (returns the larger).
+**Params**: `account` (host, required), `index_token` (required), `is_long` (required).
+
+**Response `data`** (`RoomLiquidityResp`): `{ liquidity, room_liquidity, deriwpool_liquidity }` (strings).
+
+### `GET /client/room/blocked-users`
+
+Blacklisted traders for the room. **Params**: `account` + pagination.
+**Item**: `account`, `released_pnl`, `time`.
+
+### `POST /client/room/pre-create`
+
+Apply to become a host / (re)open a room. Requires a personal-signature proof of ownership.
+
+**Request Body (JSON)** (`PreCreateRoomPoolIn`):
+
+| Field | Required | Description |
+|---|---|---|
+| `account` | Yes | Host address |
+| `capacity_base_mode` | Yes | `1`=Principal, `2`=Equity |
+| `message` | Yes | Hex `personal_sign("Apply to become a host")` (EIP-191); server runs `VerifyPersonalSignature` |
+
+Response `data` is empty on success; poll `pool-status` for progression.
+
+### Public OpenAPI mirrors — `GET /openapi/v1/rooms/*`
+
+No-auth, snake_case ports of the `/client/room` reads. **Identical response structures** (same
+`param` types). Available: `open_positions`, `close_position_history`, `lp_change`, `fee`, `tvl`,
+`detail`, `traders`. **Not exposed**: `blocked_users`, `pool_status`, `pre_create`, `coins`, `liquidity`.
+Differences vs `/client`: `IsHexAddress` validation on `account`; room-not-found always `100009`;
+`clampPagination` (offset ≤ 10000 → HTTP 400 if exceeded); detail has a 10s RPC timeout.
