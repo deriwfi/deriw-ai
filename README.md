@@ -189,6 +189,38 @@ DEV=true node scripts/edge_hour/query-api.js <account> [challengeId]
 
 ---
 
+### Room Mode (Host Liquidity Pool)
+
+Room mode = a **host-created isolated liquidity pool** ("channel pool"). Every endpoint is
+keyed by `account` = the **host/creator address** (NOT a trader wallet). Room has no dedicated
+contracts — it reuses Phase / Slippage / MemeFactory / MemeData / Vault.
+
+```
+/deriw apply to become a room host (Principal mode)
+/deriw show room detail for host 0xHostAddress
+/deriw list traders and open positions in the room
+```
+
+Corresponding scripts:
+
+```bash
+# Apply to become a host / (re)open a room — the ONLY room write flow.
+# Produces personal_sign("Apply to become a host") and POSTs to /client/room/pre-create.
+# capacityBaseMode: 1 = Principal, 2 = Equity
+DEV=true PRIVATE_KEY=xxx node scripts/room/pre-create.js <capacityBaseMode>
+
+# On-chain state reader (reuses Phase / Slippage / MemeFactory / Vault reads)
+DEV=true node scripts/room/query-state.js <hostAccount> [indexToken] [isLong]
+
+# Batch API query (detail, traders, positions, close history, LP changes, fee/TVL, pool status, coins)
+DEV=true node scripts/room/query-api.js <hostAccount>
+```
+
+**Note**: `account` in all room scripts/endpoints is the **host address**, and it locates the
+host's single active room. See `references/api.md` §3.13 for the `/client/room/*` endpoints.
+
+---
+
 ### Query
 
 ```
@@ -310,8 +342,10 @@ DEV=true PRIVATE_KEY=xxx node scripts/crosschain-withdraw.js <amount_usdt>
 - [`references/api.md`](references/api.md) — HTTP API documentation
 - [`scripts/`](scripts/) — Ready-to-run ethers.js v6 scripts (8 total)
 - [`scripts/edge_hour/`](scripts/edge_hour/) — Edge Hour specific scripts (8 total)
+- [`scripts/room/`](scripts/room/) — Room mode scripts (pre-create, query-state, query-api)
 - [`assets/`](assets/) — Contract ABI JSON files
-- [`assets/edge_hour/`](assets/edge_hour/) — Edge Hour ABI files (ChallengeManager, LPVault, PriceOracle)
+- [`assets/edge-hour/`](assets/edge-hour/) — Edge Hour ABI files (ChallengeManager, LPVault, PriceOracle)
+- [`assets/room/`](assets/room/) — Room mode reused ABIs (Phase, Slippage, MemeFactory, MemeData, Vault, VaultUtils)
 
 ---
 
