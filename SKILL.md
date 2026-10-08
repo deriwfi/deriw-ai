@@ -5,23 +5,24 @@ description: Query DERIW markets, accounts, orders and pools through client APIs
 
 # DERIW user operations
 
-This package is self-contained. Users have this skill, bundled public ABIs, RPC access, client APIs and their own wallet. They do not have the contract or backend source repositories, databases, server credentials, keeper keys or admin accounts. Never make those resources a prerequisite or suggest an internal endpoint as a fallback.
+Use the bundled ABIs, network configuration, public RPCs, client APIs and the user's wallet. All workflows are available from this package.
 
 ## Choose the environment and workflow
 
 Use [references/networks.json](references/networks.json) as the single address source. Select `DERIW_NETWORK=dev|test|mainnet`; dev is chain `18417507517`, test `2885`, mainnet `2886`. RPC and API overrides must remain on that same deployment. Writes require an explicit network. Read-only commands default to mainnet. `DEV=true` is a compatibility alias for dev.
 
-Run commands from the installed skill folder with Node.js 18+ and the bundled `package.json` dependencies (`npm ci`). Resolve scripts/assets relative to this folder, never a developer's local repository path.
+Run commands from the installed skill folder with Node.js 18+ and the bundled `package.json` dependencies (`npm ci`). Resolve scripts/assets relative to this folder, using portable paths.
 
 | Task | Read when needed |
 |---|---|
-| Networks, addresses, deprecated deployments | [references/addresses.md](references/addresses.md) |
+| Networks and contract addresses | [references/addresses.md](references/addresses.md) |
 | Markets, prices, history, user portfolio, API status | [references/api.md](references/api.md) |
 | Positions, market/limit orders, approvals, pool operations | [references/contracts.md](references/contracts.md) |
 | Room application, host creation/reopening, liquidity | [references/room.md](references/room.md) |
 | Edge Hour challenges and LP vault | [references/edge-hour.md](references/edge-hour.md) |
 | L2 deposit or L3 withdrawal | [references/bridge.md](references/bridge.md) |
-| Read-only checks and later signed test coverage | [references/testing.md](references/testing.md) |
+| Wallet actions and signed client requests | [references/actions.md](references/actions.md) |
+| Installation and transaction verification | [references/verification.md](references/verification.md) |
 
 ## Execution boundaries
 

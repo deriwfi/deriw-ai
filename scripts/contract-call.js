@@ -7,6 +7,8 @@ const writes = {
   FundRouterV2: ['claim', 'batchClaim', 'setIsResubmit'],
   MemeRouter: ['claim', 'claimAll'],
   ReferralStorage: ['setTraderReferralCodeByUser'],
+  'edge_hour/ChallengeManager': ['setTraderReferralCode'],
+  Airdrop: ['claim'],
   MemeFactory: ['createPool', 'setChannelPoolCloseCurrTime', 'setChannelPoolFreezeNow', 'cancelChannelPoolCloseTime', 'batchSetBlacklist', 'claimChannel'],
 };
 function isUserWrite(name, method) { return (writes[name] || []).includes(method); }

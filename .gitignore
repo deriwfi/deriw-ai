@@ -1,3 +1,11 @@
 node_modules/
 *.DS_Store
-app/*
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.tgz
+coverage/
+reports/
+app/

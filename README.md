@@ -1,48 +1,37 @@
-# DERIW user operations skill
+# DERIW skill
 
-This self-contained skill uses DERIW user-facing client APIs and public contract ABIs. End users do not need the contract/backend source repositories, service credentials, admin permissions or keeper access.
+Query DERIW markets and accounts, manage positions and orders, and use wallet-signed pool, room, referral, Edge Hour and bridge workflows.
 
-Keep this folder intact when installing it as `deriw` in your agent's skill directory. The entrypoint is [SKILL.md](SKILL.md); runtime dependencies are Node.js 18+ and ethers v6:
+Install this folder as `deriw` in your agent's skill directory. Keep the scripts, references and ABI assets together. The entrypoint is [SKILL.md](SKILL.md). Node.js 18 or later is required.
 
 ```bash
 npm ci
-npm test
 DERIW_NETWORK=dev npm run smoke
+DERIW_NETWORK=dev node scripts/api-query.js /client/coins
 ```
 
 ## Networks
 
-| DERIW_NETWORK | Chain ID | RPC | API |
+| Network | Chain ID | RPC | Client API |
 |---|---|---|---|
 | dev | 18417507517 | https://rpc.dev.deriw.com | https://api.dev.deriw.com |
 | test | 2885 | https://rpc.test.deriw.com | https://api.test.deriw.com |
 | mainnet | 2886 | https://rpc.deriw.com | https://api.deriw.com |
 
-[references/networks.json](references/networks.json) holds the supplied active/deprecated contract addresses. Scripts share this configuration and check the actual RPC chain. `DEV=true` remains a dev alias. Reads default to mainnet; sends require an explicit network.
+Set `DERIW_NETWORK` before sending. Read commands default to mainnet. Deployment addresses are in [networks.json](references/networks.json). `DERIW_RPC_URL` and `DERIW_API_BASE` override the corresponding transport without changing the expected chain or addresses.
 
-## Usage
+## Wallet setup
 
-```bash
-# Public data — no private key
-DERIW_NETWORK=dev node scripts/api-query.js /client/coins
-DERIW_NETWORK=dev node scripts/api-query.js /client/foundpool/lists '{"status":1}'
-DERIW_NETWORK=dev node scripts/query-position.js 0xACCOUNT 0xTOKEN true
+Commands preview by default. Add `--send` to submit an authorized action. Supply a local signer with `PRIVATE_KEY_FILE` or `PRIVATE_KEY`; never paste a key into chat or commit it to a repository. `DERIW_ACCOUNT` supplies a public wallet address for previews. Scripts do not load `.env` files automatically.
 
-# Preview using a real token from /client/coins; 100 bps is an example 1% tolerance
-DERIW_NETWORK=dev DERIW_SLIPPAGE_BPS=100 node scripts/create-market-open.js 0xTOKEN 10 100 true
-```
-
-Scripts that mutate state preview by default. Append `--send` for an authorized transaction or signed API action. Supply the key through a local `PRIVATE_KEY_FILE` or `PRIVATE_KEY` environment variable; do not paste it into chat, command arguments or this repository. `DERIW_ACCOUNT` is the public wallet address for previews that need one. The commands do not load a `.env` file automatically.
-
-Examples are templates; replace placeholder addresses and amounts with the user's chosen values. A market creation receipt is a queued request, not proof that the position opened. Read client status, events and the resulting position before retrying.
+Use a current token address from `/client/coins`, exact decimal amounts, and an explicit `DERIW_SLIPPAGE_BPS` for market orders. Check receipts, execution status and resulting balances before retrying a transaction.
 
 ## Workflows
 
-- [Client API](references/api.md): markets, prices, candles, positions, orders, funds, Meme, portfolio, referrals and room/Edge Hour reads.
-- [Contract operations](references/contracts.md): market/limit orders, cancel, fund deposit/claim, Meme deposit/claim, exact approval spenders and public read methods.
-- [Rooms](references/room.md): signed application followed by the host's own on-chain create/reopen/funding transactions.
-- [Edge Hour](references/edge-hour.md): challenge entry/trading/reward and LP deposits/withdrawals. Current deployment addresses were not supplied; configure them before on-chain use.
-- [Bridge](references/bridge.md): L2 source configuration and current fee quote are required for deposits; withdrawals use the contract-specific signing digest.
-- [Testing](references/testing.md): read-only checks and a signed test matrix for use after wallet setup and test authorization.
-
-The full ABI bundle includes privileged methods for decoding. Their presence is not user authorization. Scripts expose documented user actions only. Historical duplicate ABI directories are retained but are not imported by the current helpers.
+- [Client APIs](references/api.md): markets, portfolios, orders, pools, rooms, referrals and challenges.
+- [Trading and contract reads](references/contracts.md): positions, limit orders, cancellations and token balances.
+- [Wallet and signed client actions](references/actions.md): fund, Meme, room, referral and application commands.
+- [Rooms](references/room.md): application, creation, reopening, liquidity and lifecycle controls.
+- [Edge Hour](references/edge-hour.md): challenges, virtual positions, rewards and LP vault operations.
+- [Bridges](references/bridge.md): current deposit quotes, deposits and signed withdrawals.
+- [Verification](references/verification.md): installation checks and transaction verification.

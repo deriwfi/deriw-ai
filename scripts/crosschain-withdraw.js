@@ -19,7 +19,7 @@ async function main() {
     const domain = { name: 'Transaction', version: '1', chainId: await router.chainid(), verifyingContract: router.target };
     const message = { transactionType: 'Withdraw USDT', from: account, token: usdt, l2Token,
       destination: receiver, amount: value, deadline: BigInt(Math.floor(Date.now() / 1000) + 600), chain };
-    const [netAmount, fee] = await router.getValue(usdt, value);
+    const [fee, netAmount] = await router.getValue(usdt, value);
     const digest = await router.hashData(await router.hashDomain(domain), await router.hashMessage(message));
     R.print({ network: config.name, domain, message, netAmount, tokenFee: fee, digest,
       approval: { token: usdt, spender: router.target, amount: value }, mode: send ? 'send' : 'preview' });

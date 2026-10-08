@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 const R = require('./lib/runtime');
 const fs = require('node:fs');
+const { sourceConfig } = require('./lib/bridge');
 async function main() {
   const [amountString, quoteFile] = process.argv.slice(2).filter(x => x !== '--send');
   const send = process.argv.includes('--send'), selected = R.network();
-  // L2 network/fees are separate from the selected DERIW destination. Never guess them.
-  if (!process.env.DERIW_L2_RPC_URL || !process.env.DERIW_L2_CHAIN_ID || !quoteFile) {
-    throw new Error('Usage: crosschain-deposit.js <USDT> <quote.json> [--send]; set DERIW_L2_RPC_URL and DERIW_L2_CHAIN_ID');
-  }
-  const config = { ...selected, rpcUrl: process.env.DERIW_L2_RPC_URL, chainId: R.uint(process.env.DERIW_L2_CHAIN_ID, true).toString() };
-  if (config.chainId === selected.chainId) throw new Error('Deposit must originate on the L2 chain');
+  if (!quoteFile) throw new Error('Usage: crosschain-deposit.js <USDT> <quote.json> [--send]');
+  const config = sourceConfig(selected);
   const quote = JSON.parse(fs.readFileSync(quoteFile, 'utf8'));
   const provider = await R.providerFor(config);
   try {

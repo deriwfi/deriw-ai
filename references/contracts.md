@@ -14,7 +14,7 @@ node scripts/contract-call.js PoolDataV2 getUserInfo '["0xUSER","0xPOOL","1"]'
 node scripts/contract-call.js MemeData getMemeUserInfo '["0xPOOL","0xUSER"]'
 ```
 
-`token-state.js` reads native balance, token decimals/balance, and optionally allowance; its default token is the selected USDT. `contract-call.js` accepts view/pure methods on configured, nondeprecated contracts. For a token or dynamically discovered pool, use its bundled ABI name with `--at 0xADDRESS`; address overrides are permitted for reads only. The RPC must have the selected chain ID and the target must have bytecode. A full ABI can also describe methods absent from a particular deployed version: a reverting read must be reported, never replaced with an assumed value.
+`token-state.js` reads native balance, token decimals/balance, and optionally allowance; its default token is the selected USDT. `contract-call.js` accepts view/pure methods on configured contracts. For a token or dynamically discovered pool, use its bundled ABI name with `--at 0xADDRESS`; address overrides are permitted for reads only. The RPC must have the selected chain ID and the target must have bytecode. A full ABI can also describe methods absent from a particular deployed version: a reverting read must be reported, never replaced with an assumed value.
 
 Core `PriceOracle.getMaxMinPriceWithTime(token)` returns max/ask, min/bid and update time. Prices use 30 decimals. `getPrice(token)` returns a tuple (index token, ask, bid, mid), not a single scalar. Stored volatile-token prices do not expire automatically on read; market scripts check their age against the latest block (60 seconds by default, configurable with `DERIW_MAX_PRICE_AGE_SECONDS`). Stablecoin USDT is fixed at 1e30 with timestamp 0. Do not use it as an index token for a market order.
 
@@ -107,7 +107,7 @@ The deposit script obtains the actual token from `PoolDataV2.poolToken(pool)`, r
 
 ## Meme pools
 
-Discover pools with `/client/memepool/lists` or `MemeData.tokenToPool(token)`.
+Discover pools with `/client/memepool/lists` or `MemeData.tokenToPool(token)`. Verify `MemeFactory.poolOwner(pool)` is nonzero on the selected deployment before funding; an API listing alone does not establish that the current factory accepts the pool.
 
 ```bash
 node scripts/pool-action.js meme-deposit <pool> <USDT> [--send]
@@ -117,8 +117,8 @@ node scripts/contract-call.js MemeRouter claimAll '[]' [--send]
 
 Deposits use USDT (6 decimals). For `claim(pool,amount)`, first read `MemeData.getMemeState(pool).isStake`: if true, amount is raw GLP shares (18 decimals, bounded by user glpAmount); if false, amount is raw deposited USDT (6 decimals, bounded by user depositAmount). Inspect `getMemeUserInfo` before choosing it. `claimAll` selects these units internally across the caller’s pools. Do not call `MemePool.withdraw`: it is a data-layer-only method, not a user withdrawal API. `MemeFactory.createPool(token)` is only for an already whitelisted creator (`getWhitelistIsIn(account)`); do not add the user to a whitelist.
 
-## Privileged ABI surface
+## Referral and host actions
 
-Users may bind their own existing referral code using `ReferralStorage.setTraderReferralCodeByUser(string)` through `contract-call.js`. Read the current referral first; do not batch-register codes or change source-contract permissions. `FeeBonus.claimFeeAmount` requires a configured handler in practice (an ordinary caller may receive a zero result), and direct `GlpRewardRouter` liquidity operations require authorized pool callers. Neither is an ordinary user redemption shortcut.
+Use `node scripts/user-action.js referral-bind <code> [--send]` to bind a referral code. Read the current relationship first; existing bindings may be immutable. The complete user action list is in [actions.md](actions.md), with room lifecycle details in [room.md](room.md).
 
-Full ABI exports include governance, keeper and internal methods for decoding. `initialize`, upgrades, governance/role setters, oracle `batchSetPrices`, vault direct mutations, liquidations, pool-data mutations, and fund-manager operations are not enabled by this skill. A user signature proves identity; it does not create those roles. Host-specific `MemeFactory` writes are covered separately in [room.md](room.md).
+The bundled ABIs support reading and event decoding as well as the documented user operations. Transaction helpers restrict writes to the documented entrypoints and enforce the permissions of the connected wallet.

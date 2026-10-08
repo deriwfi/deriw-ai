@@ -39,7 +39,7 @@ function abi(name) {
 function contractAddress(config, name) {
   const edge = { 'edge_hour/ChallengeManager': 'DERIW_EDGE_CHALLENGE_MANAGER',
     'edge_hour/LPVault': 'DERIW_EDGE_LP_VAULT', 'edge_hour/PriceOracle': 'DERIW_EDGE_PRICE_ORACLE' };
-  const value = edge[name] ? process.env[edge[name]] : config.contracts[name];
+  const value = edge[name] ? process.env[edge[name]] || config.contracts[name] : config.contracts[name];
   if (!value) throw new Error(`No current deployment for ${name}${edge[name] ? `; set ${edge[name]} for ${config.name}` : ''}`);
   return address(value);
 }
@@ -145,7 +145,9 @@ const readRoutes = new Set([
 ]);
 async function api(config, method, route, params = {}) {
   const allowed = method === 'GET' ? readRoutes.has(route)
-    : method === 'POST' && ['/client/position_router/tx_status', '/client/room/pre-create', '/client/order/tpsl'].includes(route);
+    : method === 'POST' && ['/client/position_router/tx_status', '/client/room/pre-create', '/client/order/tpsl',
+      '/client/invite_return/v2/apply_agent', '/client/invite_return/v2/set_return_rate',
+      '/client/supernovaplus/create_relationship', '/client/edge_hour/challenge/claim'].includes(route);
   if (!allowed) throw new Error('Route/method is outside the reviewed client API surface');
   const url = new URL(route, config.apiBase);
   if (method === 'GET') for (const [k, v] of Object.entries(params)) {

@@ -1,6 +1,6 @@
 # Rooms: user/host workflow
 
-A room is a host's isolated channel liquidity pool. It uses core `MemeFactory`, `MemeData`, `Phase`, `Vault` and related public ABIs. Use the canonical `assets/` files and selected network addresses. Users can run the entire supported flow without server source or operator credentials.
+A room is a host's isolated channel liquidity pool. It uses core `MemeFactory`, `MemeData`, `Phase`, `Vault` and related public ABIs. Use the canonical `assets/` files and selected network addresses.
 
 ## Reads
 
@@ -32,6 +32,6 @@ node scripts/contract-call.js MemeFactory setChannelPoolFreezeNow '[]' [--send]
 node scripts/contract-call.js MemeFactory batchSetBlacklist '[["0xTRADER"],true]' [--send]
 ```
 
-These act on the signing host's room and remain subject to on-chain ownership/lifecycle checks. `claimChannel` uses a requested USDT amount (6 decimals); actual redemption may be capped by share and risk limits. Inspect `getPoolWithdrawalInfo`, pool status and balances before/after. Client `can_remove_liquidity` requires elapsed close-end time, unpaused chain state, completed rebate processing, cleared orders and positions; it is a useful gate, not authority to bypass contract checks.
+These act on the signing host's room and remain subject to on-chain ownership/lifecycle checks. `claimChannel` uses a requested USDT amount (6 decimals); actual redemption may be capped by share and risk limits. Inspect `getPoolWithdrawalInfo`, pool status and balances before/after. Use client `can_remove_liquidity` together with the current on-chain state to check withdrawal availability.
 
 `setChannelPoolCloseCurrTime` schedules closing; `cancelChannelPoolCloseTime` is only allowed before the relevant freeze boundary. `setChannelPoolFreezeNow` is a host action with lifecycle consequences: do not run it as a read check. Operator functions `setChannelPoolClose(pool)`, `setChannelPoolEndNow(pool)`, `setChannelPoolIsPause`, global config setters and `createChannelToken` are outside the user workflow. If final closure needs operator work, report that dependency instead of attempting it with the user key.

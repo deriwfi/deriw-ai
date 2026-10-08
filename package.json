@@ -15,5 +15,13 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "npm-shrinkwrap.json",
+    "assets/",
+    "references/",
+    "scripts/"
+  ]
 }

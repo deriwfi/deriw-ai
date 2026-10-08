@@ -108,9 +108,9 @@ test('read API preserves repeated query values and false, rejects application er
       assert.ok(!error.message.includes('private server stack'));
       return true;
     });
-    await assert.rejects(R.api(R.network({}), 'GET', '/internal/inspector'), /outside/);
+    await assert.rejects(R.api(R.network({}), 'GET', '/unsupported/route'), /outside/);
     await assert.rejects(R.api(R.network({}), 'GET', '/client/airdrop/log'), /outside/);
-    await assert.rejects(R.api(R.network({}), 'POST', '/client/edge_hour/challenge/claim'), /outside/);
+    await assert.rejects(R.api(R.network({}), 'POST', '/client/coins'), /outside/);
   } finally { global.fetch = original; }
 });
 test('preview encodes a transaction without reading a key or making any RPC calls', async () => {
