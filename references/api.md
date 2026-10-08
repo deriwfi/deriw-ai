@@ -1,872 +1,126 @@
-# DERIW HTTP API Reference
+# Client HTTP API
 
-**Base URL**
+Choose `apiBase` from [networks.json](networks.json). This skill uses the user-facing `/client/*` surface only; it does not require service endpoints, internal APIs, database access or API keys from the operator.
 
-| Environment | URL |
-|---|---|
-| Production | `https://api.deriw.com` |
-| Devnet | `https://testgmxapi.weequan.cyou` |
+## Calling and decoding
 
-**Unified Response Format**:
-```json
-{ "code": 0, "msg": "success", "data": { ... } }
-```
-`code = 0` success, non-zero indicates error.
-
-**Common Error Codes**
-
-| code | Description |
-|---|---|
-| `0` | Success |
-| `100002` | Internal server error |
-| `100003` | Parameter binding failed |
-| `100004` | Parameter validation failed (missing required fields) |
-| `100101` | Database error |
-| `100201` | Encryption error |
-| `100202` | Invalid signature |
-| `100203` | Token expired |
-| `100207` | Insufficient permissions |
-| `100423` | Parameter error (business layer) |
-| `100431` | Token delisted |
-| `100437` | Signature verification failed |
-| `100438` | Agent application already exists |
-
-> Some business errors have HTTP status 200 — use the `code` field to distinguish.
-
----
-
-## Endpoint Summary
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/client/candles` | GET | K-line data |
-| `/client/coins` | GET | All tokens real-time price + 24h market |
-| `/client/coin_infos` | GET | Token on-chain config (decimals/leverage/type) |
-| `/client/coin_market/info` | GET | Market overview (positions/volume) |
-| `/client/vault/total_fees` | GET | Account fee query |
-| `/client/position_router/tx_status` | POST | Market order transaction status query |
-| `/client/transaction/status` | GET | On-chain transaction parsed details |
-| `/client/foundpool/tokens` | GET | Fund pool available token list |
-| `/client/foundpool/terms` | GET | Fund pool historical period list |
-| `/client/foundpool/lists` | GET | Fund pool list (with rewards/capacity data) |
-| `/client/foundpool/deposit` | GET | My fund pool deposit records |
-| `/client/foundpool/total` | GET | Fund pool global staking stats |
-| `/client/memepool/tokens` | GET | Meme pool token list |
-| `/client/memepool/lists` | GET | Meme pool list (with rewards data) |
-| `/client/memepool/deposit` | GET | My Meme pool deposit records |
-| `/client/memepool/total` | GET | Meme pool global staking stats |
-| `/client/invite_return/v2/apply_agent` | POST | Apply to become a partner agent |
-| `/client/invite_return/v2/apply_agent_status` | GET | Agent application status query |
-| `/client/invite_return/v2/user_info` | GET | Referral user info |
-| `/client/invite_return/v2/user_invitees` | GET | Invited user list |
-| `/client/invite_return/v2/invite_return_records` | GET | Fee rebate records |
-| `/client/invite_return/v2/set_return_rate` | POST | Set subordinate rebate rate |
-| `/client/invite_return/v2/invite_friends` | GET | Invite friends list and summary |
-| `/client/point_benefit/return_fees_records` | GET | Points benefit rebate records |
-| `/client/edge_hour/*` | GET/POST | Edge Hour challenge / LP vault (see §3.12) |
-| `/client/room/*` | GET/POST | Room mode (host liquidity pool) data (see §3.13) |
-| `/openapi/v1/rooms/*` | GET | Public room mode mirrors (see §3.13) |
-
----
-
-## 3.1 K-Line Data
-
-### `GET /client/candles`
-
-Get K-line data for a specified token, returns up to 10,000 entries.
-
-**Request Parameters**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `symbol` | string | Yes | Token name, e.g. `BTC`, `ETH` |
-| `period` | string | Yes | Period: `1m` `3m` `5m` `15m` `1h` `4h` `6h` `8h` `12h` `1d` `3d` `1w` `1M` |
-| `limit` | int | No | Number of entries, unlimited by default, max 10000 |
-
-**Response `data` Structure**
-
-```json
-{
-  "period": "1h",
-  "symbol": "BTC",
-  "is_meme": false,
-  "prices": [
-    { "o": "65000.5", "h": "65800.0", "l": "64200.0", "c": "65500.0", "t": 1710000000 }
-  ]
-}
+```bash
+node scripts/api-query.js /client/coins
+node scripts/api-query.js /client/prices '{"name":["BTC","ETH"]}'
+node scripts/api-query.js /client/order/indices '{"address":"0xUSER"}'
+node scripts/api-query.js /client/position_router/tx_status '{"address":"0xUSER","tx_hash":"0xHASH","type":0}'
 ```
 
-| Field | Description |
-|---|---|
-| `o/h/l/c` | Open/High/Low/Close price |
-| `t` | Unix timestamp (seconds, K-line start time) |
+The helper uses GET except for the read-only status query, which uses POST. Arrays become repeated query keys. It checks both HTTP success and `{code:0,msg,data}`, preserves decimal strings, times out after 15 seconds and never follows redirects or automatically retries a write. A nonzero code is an error even with HTTP 200. Never treat `data:null`, no record or an API error as a zero on-chain balance.
 
----
+## Market and account reads
 
-## 3.2 Token List (with Real-Time Prices)
-
-### `GET /client/coins`
-
-Returns real-time prices and 24h market data for all listed tokens (no request parameters).
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `address` | Contract address |
-| `coin_id` | Internal ID |
-| `name` | Display name (BTC/ETH, not WBTC/WETH) |
-| `is_meme` | Whether it is a Meme token |
-| `status` | `2`=normal, `3`=pending delisting |
-| `price` | Current real-time price (USD string) |
-| `adr` | 24h price change (%, 2 decimal places) |
-| `high_price` / `low_price` | 24h high/low price |
-
----
-
-## 3.3 Token Basic Info
-
-### `GET /client/coin_infos`
-
-Returns on-chain configuration for all listed tokens (no request parameters).
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `name` / `address` | Name / contract address |
-| `decimals` | Token decimals |
-| `is_wrapped` / `is_shortable` / `is_stable` / `is_meme` | Boolean attributes |
-| `from` | Price source (binance / bybit, etc.) |
-| `fee_rate` | Fee basis points (e.g. `30` = 0.03%) |
-| `max_leverage` | Frontend maximum leverage |
-| `contract_max_leverage` | Contract maximum leverage |
-| `leverage_slider` | Available leverage slider values |
-| `max_position` | Maximum position size (USD) |
-| `status` | `2`=normal, `3`=pending delisting |
-
----
-
-## 3.4 Market Overview
-
-### `GET /client/coin_market/info`
-
-Returns comprehensive market data for all tokens (including volume, long/short positions).
-
-**Request Parameters (all optional)**
-
-| Field | Type | Description |
+| Method/path | Request fields | Relevant response data |
 |---|---|---|
-| `sort_by` | string | Sort field: `adr` / `volume_day` / `position_long_now` / `position_short_now` / `price` |
-| `order` | string | `asc` / `desc` (default `desc`) |
-| `addresses` | string[] | Filter by contract address (can pass multiple) |
+| GET `/client/coins` | none | `list`: address, name, coin_id, price, min_price, max_price, pool_amount, adr, high_price, low_price, exchange, is_meme, is_tradfi, coin_type, pre_ipo, status, market_state_policy |
+| GET `/client/prices` | optional repeated `address`, repeated `name`; each at most 25 | Array of address, min_price, max_price, pool_amount |
+| GET `/client/coin_infos` | optional `address` = user wallet for room funding rates | `list`: address, decimals, is_stable, is_shortable, fee_rate, max_leverage, contract_max_leverage, leverage_slider, status, market_state_policy, funding_fee_rate, room_pool_funding_fee_rate, next_funding_time |
+| GET `/client/candles` | required `symbol`, `period`, `limit` | symbol, period, is_meme, `prices:[{o,h,l,c,t}]`; `t` Unix seconds |
+| GET `/client/coin_market/info` | optional sort_by, order, repeated addresses | Market totals and token list |
+| GET `/client/account/info` | required `address` | position_value, pending_order_book_value, sum_account_value |
+| GET `/client/vault/position_tokens` | required `account` | Actual position index tokens; retain room mappings |
+| GET `/client/vault/decrease_records` | required address; optional is_long (1=long, 2=short), page_index, page_size | Closed-position records |
+| GET `/client/vault/total_fees` | required address; optional page_index, page_size | Fee records |
+| GET `/client/order/indices` | required address | `increase`, `decrease` arrays of order-index strings |
+| GET `/client/order/total_sizedelta` | required address | `list` of account, collateral_token, index_token, is_long, total_size_delta and above/below trigger totals |
 
-**Response `data` Structure**
+Prices in market HTTP responses are display decimal USD strings, unlike 30-decimal ABI prices. `pool_amount` can be a raw token amount: do not apply the display-price conversion to every field. Status is 1=delisted, 2=listed, 3=pending delisting. `market_state_policy` is 0=closed, 1=reduce-only, 2=normal; check this before increasing exposure. Contract simulation remains authoritative for execution eligibility. `next_funding_time` is a Unix timestamp, not a countdown. Do not derive fee percentages from an assumed denominator shared by all contracts.
+
+For candle periods and symbols, use the values supported by the selected deployment; a typical request is `symbol=BTC&period=1h&limit=100`. Large candle limits or unsupported periods can be rejected.
+
+## Portfolio
+
+All paths below are GET `/client/portfolio/<name>`. Financial outputs are strings; do not rescale without field-specific evidence.
+
+| Name | Required | Optional |
+|---|---|---|
+| summary | account, time_range | — |
+| pnl_series | account, time_range | — |
+| funding_history | account | index_token, type=`funding_fee`, page/page_index, page_size |
+| transactions | account | type=`deposit|withdraw|send`, status=`success|pending|failed`, pagination |
+| chain_transfers | account | status=1 pending/2 success/3 failed, to_address, pagination |
+
+`time_range`: `24h`, `7d`, `30d`, `all`. Pagination defaults to 20 and caps at 100; a positive `page_index` overrides `page`. Summary fields `account_value`, `available_balance` and `stake_balance` are placeholders in this API version and may be zero. Obtain actual token balances/positions from contracts. Funding history raw event amounts need their documented on-chain precision, not a blanket display conversion.
+
+## Transaction status
+
+`POST /client/position_router/tx_status`
 
 ```json
-{
-  "total_position_now": "52000000.0000",
-  "deposit_amount": "10000000.0000",
-  "list": [
-    {
-      "address": "0x...", "name": "BTC", "price": "65000.5",
-      "adr": "1.23", "high_price": "65800.0", "low_price": "64200.0",
-      "is_meme": false, "max_leverage": 100,
-      "volume_day": "15000000.0000",
-      "position_long_now": "8000000.0000",
-      "position_short_now": "6000000.0000",
-      "status": 2
-    }
-  ]
-}
+{"address":"0xUSER","tx_hash":"0xCREATE_REQUEST_HASH","type":0}
 ```
 
----
+`type=0` increase/open, `1` decrease/close. `data.status` comes from the creation record: 1=created, 2=completed, 3=failed, 4=cancelled. An absent record or 0 is unknown/not yet indexed. Do not interpret an execution-worker retry enum as a guaranteed value from this endpoint. `cancel_type` when supplied is 0=ordinary, 1=slippage, 2=liquidation. Cross-check creation/execution events and the resulting position.
 
-## 3.5 Fee Query
+`GET /client/transaction/status` takes required `tx_hash` and `type` (method-name string such as `createIncreasePosition`, `createDecreasePosition`, `createIncreaseOrder`, `createDecreaseOrder`, `batchCreateDecreaseOrder`, `cancelIncreaseOrder`, `liquidatePosition`). Its `data.list` contains display fields such as coin_name, is_long, size and order_type. It is not an RPC transaction-receipt replacement.
 
-### `GET /client/vault/total_fees`
+## Fund and Meme pool discovery
 
-Query cumulative fee records for an account (aggregated by position).
-
-**Request Parameters**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `address` | string | Yes | Wallet address |
-| `page_index` | int | No | Page number, default 1 |
-| `page_size` | int | No | Items per page, default 10 |
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
+| GET path | Fields |
 |---|---|
-| `account` / `collateral_token` / `index_token` | Position identifiers |
-| `is_long` | Long/short direction |
-| `total_fees` | Cumulative fees (USD string) |
+| `/client/foundpool/tokens` | none; data.tokens |
+| `/client/foundpool/terms` | none; data.terms and current_term |
+| `/client/foundpool/lists` | required status (1 fundraising, 2 running, 3 ended); optional term, token |
+| `/client/foundpool/deposit` | required user; optional term |
+| `/client/foundpool/total` | none |
+| `/client/memepool/tokens` | none |
+| `/client/memepool/lists` | optional token |
+| `/client/memepool/deposit` | required user |
+| `/client/memepool/total` | none |
 
----
+Fund list entries include pool, p_id, token_address, name, start_time, end_time, lock_end_time, min_deposit_amount, fundraising_amount, deposit_amount, apr and profit. User records include is_resubmit, is_claimed, amount and lp_token_amount. APIs show indexed state; before depositing or claiming check the relevant on-chain period and user state. No pool deposit/withdraw HTTP endpoint substitutes for the user's contract transaction.
 
-## 3.6 Market Order Transaction Status Query
+## Rooms
 
-### `POST /client/position_router/tx_status`
+GET `/client/room/<name>` uses `account` = host address, not an arbitrary trader wallet.
 
-Query execution status of a market order by transaction hash (only supports market orders created by PositionRouter).
-
-**Request Body (JSON)**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `address` | string | Yes | Wallet address |
-| `tx_hash` | string | Yes | Transaction hash |
-| `type` | int | No | `0`=open (default), `1`=close |
-
-**Response `data` Structure**
-
-```json
-{ "status": 2, "cancel_type": 0 }
-```
-
-**status Enum Values**
-
-| Value | Description |
-|---|---|
-| `1` | Created (waiting for execution engine) |
-| `2` | Completed (on-chain Execute event confirmed) |
-| `3` | Execution failed |
-| `4` | Cancelled (`cancel_type`: `0`=normal, `1`=slippage, `2`=liquidation) |
-| `5` | Retrying (close only) |
-
----
-
-## 3.7 On-Chain Transaction Details Query
-
-### `GET /client/transaction/status`
-
-Query on-chain transaction parsed details by transaction hash and type.
-
-**Request Parameters**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `tx_hash` | string | Yes | On-chain transaction hash |
-| `type` | string | Yes | Transaction type (see table below) |
-
-**type Enum Values**
-
-| Value | Description |
-|---|---|
-| `createIncreasePosition` | Create market open position |
-| `createDecreasePosition` | Create market close position |
-| `createIncreaseOrder` | Create limit open order |
-| `createDecreaseOrder` | Create limit close order |
-| `batchCreateDecreaseOrder` | Batch create limit close orders |
-| `cancelIncreaseOrder` | Cancel limit open order |
-| `liquidatePosition` | Force liquidation |
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `coin_name` | e.g. `BTC/USDT` |
-| `is_long` | Long/short direction |
-| `size` | Position size (USD) |
-| `order_type` | `market` / `limit` |
-
----
-
-## 3.8 Fund Pool (FundPool) Endpoints
-
-### `GET /client/foundpool/tokens`
-
-Get list of all tokens available for fund pools (no request parameters).
-
-**Response**: `{ "tokens": ["USDT", "BTC", "ETH"] }`
-
----
-
-### `GET /client/foundpool/terms`
-
-Get all historical period lists and current running period (no request parameters).
-
-**Response**: `{ "terms": [...], "current_term": "2024-03-01/2024-06-01" }`
-
----
-
-### `GET /client/foundpool/lists`
-
-Get fund pool list, supports filtering by token and period.
-
-**Request Parameters (all optional)**
-
-| Field | Type | Description |
+| Name | Other inputs | Relevant data |
 |---|---|---|
-| `token` | string | Token name filter |
-| `term` | string | Period filter, format `start_date/lock_end_date` |
-| `status` | int | `1`=fundraising, `2`=running, `3`=ended |
+| detail | — | net_deposits, pool_equity, total_tvl, total_reversed_oi, total_available_oi, active_trader, realized_pnl, net_revenue, room_health |
+| pool-status | — | status, capacity_base_mode, pool, lv, can_remove_liquidity, withdrawal_limit, total_withdrawal_number, last_withdrawal_time, withdrawal_window_time |
+| traders | page_index, page_size | items, total, page_index, page_size |
+| open-positions | pagination | items: account, index_token, direction, size_delta, collateral_size, average_price, liquidation_price, unreleased_pnl |
+| close-position-history | pagination | items including tx_hash, released_pnl, fee_share, is_force_close, is_liq |
+| lp-change | pagination | host liquidity changes |
+| blocked-users | pagination | room block list |
+| fee / tvl | optional limit | items: day, volume |
+| coins | — | room tradable coins |
+| liquidity | required index_token, is_long (true/false, including false explicitly) | liquidity, room_liquidity, deriwpool_liquidity |
 
-**Response `data.list` Element Fields**
+Pagination page_index≥1, page_size≤100. Room display amounts are decimal strings; raw ABI values have their own units. Different missing-room reads can return different errors; do not hardcode a single “not found” code for the whole group.
 
-| Field | Description |
+`POST /client/room/pre-create` body `{account,capacity_base_mode,message}` uses mode 1=principal or 2=equity. `message` is the EIP-191 signature over the exact text `Apply to become a host`. It records an application/reopen state. It does **not** sign or fund `MemeFactory.createChannelPool`; follow [room.md](room.md).
+
+## Edge Hour
+
+GET `/client/edge_hour/<name>`:
+
+| Name | Inputs |
 |---|---|
-| `pool` / `p_id` | Pool address / period ID |
-| `name` | Pool name |
-| `token_address` | Collateral token address |
-| `start_time` / `end_time` / `lock_end_time` | Times (Unix) |
-| `deposit_amount` | Current actual deposit amount |
-| `fundraising_amount` | Fundraising capacity cap |
-| `after_amount` / `after_value` | Current liquidity / USD value |
-| `apr` / `profit` | Yield rate / profit amount |
-| `min_deposit_amount` | Minimum deposit amount |
-| `out_amount` / `out_value` | Total redemption (has value when status=3) |
+| templates / templates/config / lpvault | none |
+| challenge/info | account |
+| positions / close_records | account, challenge_id; optional page_index/page_size |
+| user/overview / user/challenges | account; pagination for challenges |
+| user/challenge/detail | account, challenge_id |
+| challenge_detail | challenge_id |
+| liquidate_price | challenge_id, index_token, is_long, size_delta, collateral; amounts in raw 6-decimal units |
 
----
+Template data includes template_id, max_ticket_price, duration, tokens, leverages, minimum_holding_period, minimum_trades, r_target and dd_max. API values have endpoint-specific display conventions; inspect [edge-hour.md](edge-hour.md). Challenge records use the contract’s 0=None, 1=Active, 2=Passed, 3=Failed, 4=Claimed enum. Position/closed-trade status fields have different meanings. `liquidate_price` returns a raw 18-decimal price string.
 
-### `GET /client/foundpool/deposit`
+`POST /client/edge_hour/challenge/claim` accepts `{challenge_id}` and requests backend settlement/claim processing. It is a mutation, not a status check; HTTP success is not proof of a paid reward. Use only for an explicitly authorized challenge operation, and verify chain state/receipt separately. The direct user `claimReward` path is documented in the Edge Hour reference.
 
-Query my fund pool deposit records.
+## Referral and rebate APIs
 
-**Request Parameters**
+GET `/client/invite_return/v2/` paths `apply_agent_status`, `user_info`, `user_invitees`, `invite_return_records`, `invite_friends` require `account`; paginated lists use page_index≥1/page_size≤100. GET `/client/point_benefit/return_fees_records` is the points rebate history. Check the specific request fields when using its filters.
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `user` | string | Yes | Wallet address |
-| `term` | string | No | Period filter |
+User-facing signed mutations (not supported by the read-only CLI; use an explicitly authorized wallet integration):
 
-**Response `data.list` Element Fields**
+- POST `/client/invite_return/v2/apply_agent`: account, username (≤20 chars), country (≤20), nonempty unique platforms, nonempty profiles (`link`, `follower_count`), optional image_ids, plan_to_promote_dw, joined_similar_affiliate_name, and signature. Sign exactly `Apply to become affiliate` with EIP-191.
+- POST `/client/invite_return/v2/set_return_rate`: account (parent), return_rate (0..10000), signature, optional invitee. Sign exactly `Confirm the rebate ratio` with EIP-191. The server validates referral hierarchy; signing does not grant authority over unrelated accounts.
 
-| Field | Description |
-|---|---|
-| `pool` / `p_id` / `name` | Pool identifiers |
-| `amount` / `lp_token_amount` | My deposit / LP share |
-| `status` | `1`=running, `2`=locked, `3`=ended |
-| `profit` / `apr` | Estimated profit / yield rate |
-| `is_claimed` | Whether rewards have been claimed |
-
----
-
-### `GET /client/foundpool/total`
-
-Get total staking stats for all currently running fund pools (no request parameters).
-
-**Response Fields**
-
-| Field | Description |
-|---|---|
-| `total_deposit_amount` | Total deposits across all running pools (minimum unit) |
-| `total_fundraising_value` | Corresponding total LP Token amount |
-| `term` | Current period identifier |
-| `history_avg_apr` | Historical average annualized return |
-
----
-
-## 3.9 Meme Pool Endpoints
-
-### `GET /client/memepool/tokens`
-
-Get token list for all Meme pools (no request parameters).
-
-**Response**: `{ "tokens": [{ "name": "PEPE", "token_address": "0x..." }] }`
-
----
-
-### `GET /client/memepool/lists`
-
-Get Meme pool list.
-
-**Request Parameters (optional)**: `token` (filter by token contract address)
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `pool` / `creator` | Pool address / creator |
-| `name` / `token_address` | Token name / address |
-| `status` | `1`=fundraising, `2`=running, `3`=ended, `-1`=liquidity warning (<30%) |
-| `min_amount` / `start_time` / `lock_time` | Min deposit / start time / lock duration (seconds) |
-| `deposit_amount` / `total_deposit_amount` | Current net deposits / historical cumulative deposits |
-| `after_amount` / `after_value` | Current liquidity / USD value |
-| `profit` / `apr` | Profit amount / yield rate |
-
----
-
-### `GET /client/memepool/deposit`
-
-Query my Meme pool deposit records.
-
-**Request Parameters**: `user` (wallet address, required), `token` (token address, optional)
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `pool` / `token_address` / `name` | Identifier info |
-| `status` | Same as list endpoint |
-| `deposit_amount` | My total deposit amount (minimum unit) |
-| `profit` / `apr` | My estimated profit / yield rate |
-
----
-
-### `GET /client/memepool/total`
-
-Get total current staking amount across all Meme pools (no request parameters).
-
-**Response**: `{ "total_deposit_amount": "...", "total_fundraising_value": "..." }`
-
----
-
-## 3.10 Referral System (Invite Return V2) Endpoints
-
-### `POST /client/invite_return/v2/apply_agent`
-
-Apply to become a partner agent.
-
-**Request Body (JSON)**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `username` | string | Yes | Username (max 20 characters) |
-| `country` | string | Yes | Country (max 20 characters) |
-| `account` | string | Yes | Wallet address |
-| `platforms` | string[] | Yes | Platform list (at least 1) |
-| `profiles` | object[] | Yes | Per-platform profile (`link` required) |
-| `image_ids` | int[] | No | Uploaded image ID list |
-| `plan_to_promote_dw` | string | No | Promotion plan description |
-| `joined_similar_affiliate_name` | string | No | Name of similar projects previously joined |
-| `signature` | string | Yes | Wallet signature |
-
----
-
-### `GET /client/invite_return/v2/apply_agent_status`
-
-Query agent application status.
-
-**Request Parameters**: `account` (wallet address, required)
-
----
-
-### `GET /client/invite_return/v2/user_info`
-
-Get current user's referral info.
-
-**Request Parameters**: `account` (wallet address, required)
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `account_type` | `0`=regular user, `1`=partner |
-| `code` | My referral code |
-| `inviter` | Address of person who invited me |
-| `return_rate` | My current rebate rate (basis points, 500 = 5%) |
-| `invitee_return_rate` | Rebate rate set for me by my referrer |
-| `subordinate_return_rate` | Unified rebate rate I set for my subordinates |
-| `total_fees_from_self` | Total fees generated by myself (USD) |
-| `return_fees_from_self` | Rebate portion from my own fees |
-| `return_fees_from_invitee` | Fee rebates from people I invited |
-
----
-
-### `GET /client/invite_return/v2/user_invitees`
-
-Get list of users I've invited (paginated).
-
-**Request Parameters**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `account` | string | Yes | Wallet address |
-| `page_index` | int | Yes | Page number (min 1) |
-| `page_size` | int | Yes | Items per page (1-100) |
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `account` / `account_type` / `code` | Invitee info |
-| `return_rate` | Rebate rate set for this invitee |
-| `total_fees_from_self` | Fees generated by this invitee |
-| `return_fees_from_self` | Rebates this invitee gave me |
-| `return_fees_from_invitee` | Rebates from this invitee's subordinates to me |
-| `created_at` | Registration time (Unix) |
-
----
-
-### `GET /client/invite_return/v2/invite_return_records`
-
-Get fee rebate distribution records (paginated).
-
-**Request Parameters**: `account`, `page_index`, `page_size` (all required)
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `return_rate` | Rebate ratio |
-| `total_fees` | Fees generated in this period (USD) |
-| `return_fees` | Rebate amount for this period (USD) |
-| `created_at` | Record time (Unix) |
-| `status` | Distribution status |
-
----
-
-### `POST /client/invite_return/v2/set_return_rate`
-
-Set rebate rate for a specified subordinate (partner only).
-
-**Request Body (JSON)**
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `account` | string | Yes | Superior (caller) wallet address |
-| `return_rate` | int | Yes | Rebate rate (0-10000, basis points) |
-| `signature` | string | Yes | Wallet signature |
-| `invitee` | string | No | Specified subordinate address (sets unified rate if omitted) |
-
----
-
-### `GET /client/invite_return/v2/invite_friends`
-
-Get invite friends info and rebate summary (friends invitation campaign).
-
-**Request Parameters**: `account` (required), `page_index`, `page_size` (optional)
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `code` / `account_type` / `return_rate` | My basic info |
-| `friend_return_rate` | Friend rebate rate |
-| `invite_users` | Total invited users |
-| `return_fees` | My cumulative rebates (USD) |
-| `total` / `list` | Total records / friends list |
-
----
-
-## 3.11 Points Benefit Endpoints
-
-### `GET /client/point_benefit/return_fees_records`
-
-Get fee rebate records (points benefit view).
-
-**Request Parameters**: `account` (required), `page_index`, `page_size` (optional, int64)
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `total` | Total record count |
-| `level` | Account level |
-| `return_rate` | Rebate rate |
-| `total_fees` | Total fees (USD) |
-| `list` | Record list (`return_fees`, `return_rate`, `total_fees`, `created_at`) |
-
----
-
-## 3.12 Edge Hour Endpoints
-
-Base URL: Production `https://api.deriw.com`, Dev `https://testgmxapi.weequan.cyou`
-
-### `GET /client/edge_hour/templates`
-
-Get all active challenge template list (no request parameters).
-
-**Response `data.list` Element Fields**
-
-| Field | Type | Description |
-|---|---|---|
-| `template_id` | int | Template ID (passed to contract `startChallenge`) |
-| `max_ticket_price` | string | Maximum ticket price (1e6 USDT) |
-| `target_multiplier` | string | Reward multiplier bps (20000=2x) |
-| `duration` | int | Challenge duration (seconds) |
-| `tokens` | string[] | Tradable token address list |
-| `trade_fee` | string | Trading fee bps |
-| `r_target` | string | Profit target bps (60=0.6%) |
-| `r_target_amount` | string | Profit target amount (1e6 USDT, e.g. 60000000=60 USDT) |
-| `dd_max` | string | Max drawdown bps (30=0.3%) |
-| `dd_max_amount` | string | Max drawdown amount (1e6 USDT) |
-| `minimum_holding_period` | int | Minimum holding time (seconds) required for a valid trade |
-| `minimum_trades` | int | Minimum number of valid trades |
-| `max_profit_ratio_per_trade` | string | Max single-trade profit as share of target (bps) |
-| `leverages` | int[] | Max leverage per token (one-to-one with `tokens`) |
-
----
-
-### `GET /client/edge_hour/lpvault`
-
-Get LPVault global statistics (no request parameters).
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `total_asset_balance` | Total vault assets (1e6 USDT) |
-| `total_potential_payout` | Total potential payout for all active challenges (1e6 USDT) |
-| `max_vault_utilization_bps` | Maximum utilization rate bps (8000=80%) |
-
----
-
-### `GET /client/edge_hour/challenge/info`
-
-Get user's current/latest challenge info.
-
-**Request Parameters**
-
-| Field | Required | Description |
-|---|---|---|
-| `account` | Yes | User wallet address |
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `has_active_challenge` | Whether user has an ongoing challenge |
-| `need_settlement` | Whether settlement is needed (passed but not claimed, or failed but not confirmed) |
-| `min_trade_value` | Minimum position value (1e6 USDT, from contract) |
-| `challenge` | Challenge details (see ChallengeItem below) |
-| `has_unclose_position` | Whether there are open positions |
-| `failed` | Failure reason (`time_passed`/`trade_count`/`single_trade_cap`/`max_draw_down`) |
-
-**ChallengeItem Fields**
-
-| Field | Description |
-|---|---|
-| `challenge_id` | Challenge ID |
-| `template_id` | Template ID |
-| `status` | Status: 1=Active, 2=Passed, 3=Failed, 4=Claimed |
-| `start_time` / `end_time` | Unix timestamps |
-| `roi` | ROI (bps, ÷100 for percentage, e.g. -101 = -1.01%) |
-| `pnl` | PnL (1e6 USDT) |
-| `trade_count` | Valid trade count |
-| `final_reward` | Estimated reward (1e6 USDT) |
-| `tokens` | Tradable token address list |
-| `token_leverage` | Token address → max leverage map |
-| `r_target` | Profit target bps |
-| `dd_max` | Max drawdown bps |
-| `minimum_trades` | Minimum valid trades |
-| `minimum_holding_period` | Minimum holding time (seconds) |
-
----
-
-### `GET /client/edge_hour/positions`
-
-Get current open positions in a challenge.
-
-**Request Parameters**: `account` (required), `challenge_id` (required), `page_index`, `page_size`
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `index_token` | Token address |
-| `is_long` | Direction (long/short) |
-| `size` | Position size (1e6 USDT) |
-| `collateral_size` | Collateral (1e6 USDT) |
-| `leverage` | Actual leverage multiplier |
-| `entry_price` | Average entry price (1e18) |
-| `liquidate_price` | Liquidation price (1e18) |
-| `profit_lose` | Current P&L percentage (string) |
-| `reward_amount` | Profit amount (1e6 USDT) |
-| `profit_limit` | Max single-trade profit cap (1e6 USDT) |
-| `status` | 0=holding time insufficient, 1=holding time met, 2=below single-trade profit cap, 3=single-trade profit cap reached |
-| `trade_fee` | Trading fee (1e6 USDT) |
-| `open_time` | Open time (Unix) |
-| `open_tx_hash` | Open position transaction hash |
-
----
-
-### `GET /client/edge_hour/close_records`
-
-Get closed position records for a challenge.
-
-**Request Parameters**: `account` (required), `challenge_id` (required), `page_index`, `page_size`
-
-**Response `data.list` Element Fields**
-
-| Field | Description |
-|---|---|
-| `index_token` | Token address |
-| `is_long` | Direction (long/short) |
-| `size` | Position size (1e6 USDT) |
-| `close_price` | Close price (1e18) |
-| `profit_lose` | P&L percentage |
-| `open_time` / `close_time` | Open/close time (Unix) |
-
----
-
-### `GET /client/edge_hour/user/overview`
-
-Get user historical statistics.
-
-**Request Parameters**: `account` (required)
-
-**Response `data` Fields**
-
-| Field | Description |
-|---|---|
-| `total_challenges` | Total challenge count |
-| `win_rate` | Win rate (%) |
-| `total_profit` | Cumulative rewards (1e6 USDT) |
-| `best_roi` | Best ROI (bps) |
-
----
-
-### `GET /client/edge_hour/user/challenges`
-
-Get user challenge history list (paginated).
-
-**Request Parameters**: `account` (required), `page_index`, `page_size`
-
-**Response `data.list`**: Each entry is a ChallengeItem (same format as the `challenge` field in `/challenge/info`)
-
----
-
-### `GET /client/edge_hour/challenge_detail`
-
-Get details for a specified challenge (public, Redis cache 1s).
-
-**Request Parameters**: `challenge_id` (required)
-
-**Response `data`**: ChallengeItem format
-
----
-
-### `POST /client/edge_hour/challenge/claim`
-
-Notify server that user has claimed (must call contract `claimReward` first).
-
-**Request Body (JSON)**
-
-| Field | Required | Description |
-|---|---|---|
-| `challenge_id` | Yes | Challenge ID (int64) |
-
----
-
-## 3.13 Room Mode Endpoints
-
-Room mode = **host-created isolated liquidity pool** ("channel pool"). Every endpoint is keyed by
-`account` = the **host/creator address** (NOT a trader wallet); it locates the host's single active room.
-
-- Success: `code: 0`, payload in `data`. Room not found: `code: 100009`.
-- `/client/room` uses kebab-case; the public `/openapi/v1/rooms` mirrors use snake_case, add
-  `IsHexAddress` validation on `account`, and clamp pagination (`page_size` ≤ 100, offset ≤ 10000).
-- Amounts / prices / PnL / fees are returned as **strings, already precision-shifted** by the server.
-- Base URL: Production `https://api.deriw.com`, Dev `https://testgmxapi.weequan.cyou`.
-
-### `GET /client/room/detail`
-
-Room overview aggregation. **Param**: `account` (host, required).
-
-**Response `data`** (`GetRoomDetailOut`):
-
-| Field | Description |
-|---|---|
-| `net_deposits` / `net_deposits_change_percent` | Net host deposits + MoM change ratio |
-| `total_deposits` / `total_deposits_change_percent` | Gross deposits + change ratio |
-| `withdrawable_amount` | Currently withdrawable |
-| `pool_equity` / `pool_equity_change_percent` | Pool equity (`MemeData.getChannelOutAmount`) + change |
-| `total_tvl` | Vault lockup (`Vault.poolAmounts`) |
-| `total_reversed_oi` / `total_reversed_oi_percent` | Reversed (hedged) open interest |
-| `max_oi` / `total_available_oi` | Max & available OI capacity |
-| `active_trader` / `total_volume` | Active trader count, cumulative volume |
-| `realized_pnl` / `net_revenue` | Room realized PnL, host net revenue |
-| `room_health` | `{ utilization_rate, risk_exposure, risk_exposure_rate }` |
-
-Contains multiple on-chain view calls — on failure returns whole error (no partial data).
-
-### `GET /client/room/pool-status`
-
-Room status + withdrawal gating. **Param**: `account` (host, required).
-
-**Response `data`** (`GetRoomPoolStatusOut`):
-
-| Field | Description |
-|---|---|
-| `status` | 0=None, 1=PreCreate, 2=Created, 3=Running, 4=Cooldown, 5=Closed |
-| `capacity_base_mode` | 1=Principal, 2=Equity |
-| `pool` | Room channel-pool contract address |
-| `can_remove_liquidity` | True only when cooldown reached, chain not paused, no pending rebates, all orders cancelled, positions cleared |
-| `withdrawal_limit` / `total_withdrawal_number` | Max withdrawals per window / lifetime count |
-| `last_withdrawal_time` / `withdrawal_window_time` | Last withdrawal ts (s) / window length (s) |
-
-### `GET /client/room/traders`
-
-Trader leaderboard for the room. **Params**: `account`, `page_index`, `page_size` (≤100, default 20).
-
-**Response `data`** (`RoomTradersResp`): `{ items[], total, page_index, page_size }`, item fields:
-`account`, `total_volume`, `win_rate`, `total_fee`, `unreleased_pnl`, `released_pnl`, `managed_fee`.
-
-### `GET /client/room/open-positions`
-
-Open positions in the room (host-view cache). **Params**: `account` + pagination.
-
-**Item** (`RoomOpenPositionItem`): `account`, `market`, `index_token`, `direction`, `leverage`,
-`average_price`, `now_price`, `liquidation_price`, `collateral_size`, `size_delta`, `unreleased_pnl`.
-
-### `GET /client/room/close-position-history`
-
-Closed positions (incl. force-close / liquidation flags & fee share). **Params**: `account` + pagination.
-
-**Item** (`RoomClosePositionItem`): `account`, `market`, `direction`, `leverage`, `average_price`,
-`close_price`, `collateral_size`, `size_delta`, `released_pnl`, `fee_share`, `time`, `is_force_close`,
-`is_liq`, `tx_hash`.
-
-### `GET /client/room/lp-change`
-
-Host add/remove-liquidity events (on-chain LP events). **Params**: `account` + pagination.
-
-**Item** (`RoomLPChangeItem`): `account`, `amount`, `type` (`deposit`/`withdraw`), `symbol`,
-`contract_address`, `status` (`pending`/`succeed`/`failed`), `time`.
-
-### `GET /client/room/fee`
-
-Per-natural-day fee-share trend. **Params**: `account`, `limit` (days, default 10, no cap).
-
-**Response `data`** (`GetRoomFeeOut`): `{ items: [ { day: "2026-07-01", volume: "10.5" } ] }`.
-Window = today back `limit-1` days; days before room reopen are `0`.
-
-### `GET /client/room/tvl`
-
-Per-natural-day TVL trend (history from daily snapshot, today from chain). **Params**: `account`, `limit`.
-
-**Response `data`** (`GetRoomTVLOut`): `{ items: [ { day: "2026-07-01", volume: "20000" } ] }`.
-
-### `GET /client/room/coins`
-
-Tradeable coins in the room (platform coins filtered via channel-token mapping). **Param**: `account`.
-Response shape matches `/client/coins` (`{ list: [...] }`) with room channel-token addresses substituted.
-
-### `GET /client/room/liquidity`
-
-Available liquidity for a prospective trade: room pool vs main deriwpool (returns the larger).
-**Params**: `account` (host, required), `index_token` (required), `is_long` (required).
-
-**Response `data`** (`RoomLiquidityResp`): `{ liquidity, room_liquidity, deriwpool_liquidity }` (strings).
-
-### `GET /client/room/blocked-users`
-
-Blacklisted traders for the room. **Params**: `account` + pagination.
-**Item**: `account`, `released_pnl`, `time`.
-
-### `POST /client/room/pre-create`
-
-Apply to become a host / (re)open a room. Requires a personal-signature proof of ownership.
-
-**Request Body (JSON)** (`PreCreateRoomPoolIn`):
-
-| Field | Required | Description |
-|---|---|---|
-| `account` | Yes | Host address |
-| `capacity_base_mode` | Yes | `1`=Principal, `2`=Equity |
-| `message` | Yes | Hex `personal_sign("Apply to become a host")` (EIP-191); server runs `VerifyPersonalSignature` |
-
-Response `data` is empty on success; poll `pool-status` for progression.
-
-### Public OpenAPI mirrors — `GET /openapi/v1/rooms/*`
-
-No-auth, snake_case ports of the `/client/room` reads. **Identical response structures** (same
-`param` types). Available: `open_positions`, `close_position_history`, `lp_change`, `fee`, `tvl`,
-`detail`, `traders`. **Not exposed**: `blocked_users`, `pool_status`, `pre_create`, `coins`, `liquidity`.
-Differences vs `/client`: `IsHexAddress` validation on `account`; room-not-found always `100009`;
-`clampPagination` (offset ≤ 10000 → HTTP 400 if exceeded); detail has a 10s RPC timeout.
+Signatures for these fixed texts do not bind every HTTP field. Do not log or reuse them for a new action, and show the intended fields before signing. If the task is a query, never submit any of these writes.
