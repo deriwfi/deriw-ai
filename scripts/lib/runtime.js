@@ -92,15 +92,56 @@ function validateQuote(max, min, updated, blockTime, maxAge = process.env.DERIW_
   }
   return age;
 }
+function receiptEffects(contract, receipt) {
+  const effects = [];
+  for (const log of receipt.logs || []) {
+    if (address(log.address) !== address(contract.target)) continue;
+    let parsed;
+    try { parsed = contract.interface.parseLog(log); } catch { continue; }
+    if (!parsed) continue;
+    const effect = { event: parsed.name };
+    const key = parsed.args.key || parsed.args.cEvent?.key || parsed.args.eEvent?.key;
+    if (key) effect.key = key;
+    if (parsed.args.orderIndex !== undefined) effect.orderIndex = parsed.args.orderIndex.toString();
+    if (parsed.name.endsWith('NotExist')) effect.effect = 'request-already-absent';
+    effects.push(effect);
+  }
+  return effects;
+}
+function revertData(error) {
+  if (typeof error?.data === 'string') return error.data;
+  if (typeof error?.data?.data === 'string') return error.data.data;
+  return '';
+}
+function revertReason(error) {
+  if (error?.reason) return String(error.reason);
+  const data = revertData(error);
+  if (!data.startsWith('0x08c379a0')) return '';
+  try { return ethers.AbiCoder.defaultAbiCoder().decode(['string'], `0x${data.slice(10)}`)[0]; }
+  catch { return ''; }
+}
+function allowanceFailure(error) {
+  const message = `${error?.shortMessage || ''} ${error?.message || ''} ${revertReason(error)}`;
+  if (/allowance/i.test(message)) return true;
+  // OpenZeppelin ERC20InsufficientAllowance(address,uint256,uint256)
+  return revertData(error).toLowerCase().startsWith('0xfb8f41b2');
+}
 async function sendCall(contract, method, args, overrides = {}) {
   const fn = contract.getFunction(method);
-  await fn.staticCall(...args, overrides);
+  const simulated = await fn.staticCall(...args, overrides);
+  if (simulated === false) {
+    throw new Error(`${method} would return false and leave the request unchanged`);
+  }
   const tx = await fn(...args, overrides);
   // Print immediately: a receipt timeout must never cause an automatic resubmission.
   print({ submitted: tx.hash, to: contract.target, method });
   const receipt = await tx.wait(1, 120000);
   if (!receipt || receipt.status !== 1) throw new Error(`Receipt not successful: ${tx.hash}`);
-  print({ confirmed: receipt.hash, blockNumber: receipt.blockNumber });
+  const effects = receiptEffects(contract, receipt);
+  print({ confirmed: receipt.hash, blockNumber: receipt.blockNumber, effects });
+  if (effects.some(effect => effect.effect === 'request-already-absent')) {
+    throw new Error(`Transaction ${receipt.hash} mined, but the request was already absent`);
+  }
   return receipt;
 }
 async function executePlan(config, provider, plan, send) {
@@ -123,6 +164,17 @@ async function executePlan(config, provider, plan, send) {
     if (await erc20.balanceOf(wallet.address) < needed) throw new Error('Insufficient token balance');
     const allowance = await erc20.allowance(wallet.address, spender);
     if (allowance < needed) {
+      try {
+        const simulated = await contract.getFunction(plan.method).staticCall(...plan.args, { value: plan.value || 0n });
+        if (simulated === false) throw new Error(`${plan.method} would return false and leave the request unchanged`);
+      } catch (error) {
+        if (String(error.message || '').includes('would return false')) throw error;
+        const reason = revertReason(error);
+        // A decoded business revert stops the approval. An allowance error, or a node
+        // response with no revert data, continues into the exact approval below.
+        if (reason && !/allowance/i.test(reason)) throw error;
+        if (!reason && revertData(error) && !allowanceFailure(error)) throw error;
+      }
       if (allowance !== 0n) await sendCall(erc20, 'approve', [spender, 0n]);
       await sendCall(erc20, 'approve', [spender, needed]);
     }
@@ -171,4 +223,4 @@ function fail(error) {
 }
 module.exports = { ethers, networks, network, address, uint, amount, bool, abi, contractAddress,
   providerFor, checkedContract, print, signer, assertWriteNetwork, slippagePrice, validateQuote, sendCall,
-  executePlan, readRoutes, api, fail };
+  receiptEffects, allowanceFailure, executePlan, readRoutes, api, fail };

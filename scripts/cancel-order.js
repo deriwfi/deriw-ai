@@ -29,6 +29,15 @@ async function main() {
   const config = R.network();
   const provider = await R.providerFor(config);
   try {
+    if (send && (plan.method === 'cancelIncreasePosition' || plan.method === 'cancelDecreasePosition')) {
+      const router = await R.checkedContract(config, 'PositionRouter', provider);
+      const request = plan.method === 'cancelIncreasePosition'
+        ? await router.increasePositionRequests(plan.args[0])
+        : await router.decreasePositionRequests(plan.args[0]);
+      if (request.account === R.ethers.ZeroAddress) {
+        throw new Error('Request is already absent; cancellation was not broadcast');
+      }
+    }
     await R.executePlan(config, provider, plan, send);
   } finally {
     provider.destroy();

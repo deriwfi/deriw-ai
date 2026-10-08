@@ -71,6 +71,8 @@ test('market plans read the current oracle, encode bounded prices and reject sta
     assert.equal(collateralOnly.args[2], R.amount('1', 30));
     const marginOnly = await tradingPlan('market-open', [token, '1', '0', 'true'], config, provider);
     assert.equal(marginOnly.args[3], 0n);
+    assert.equal(marginOnly.args[6], R.ethers.ZeroHash);
+    await assert.rejects(tradingPlan('market-open', [token, '1', '1', 'true', '0x' + '11'.repeat(32)], config, provider), /zero referral/);
     await assert.rejects(tradingPlan('market-close', [token, '0', 'true', '0'], config, provider, token), /both be zero/);
     timestamp = 1n;
     await assert.rejects(tradingPlan('market-open', [token, '10', '100', 'true'], config, provider), /stale/);
@@ -112,6 +114,28 @@ test('read API preserves repeated query values and false, rejects application er
     await assert.rejects(R.api(R.network({}), 'GET', '/client/airdrop/log'), /outside/);
     await assert.rejects(R.api(R.network({}), 'POST', '/client/coins'), /outside/);
   } finally { global.fetch = original; }
+});
+test('receipt summary keeps request keys and a false cancel is distinct from an allowance revert', () => {
+  const iface = new R.ethers.Interface(R.abi('PositionRouter'));
+  const key = '0x' + 'ab'.repeat(32);
+  const encoded = iface.encodeEventLog('CreateIncreasePosition', [{
+    key, path: [], account: R.ethers.ZeroAddress, indexToken: R.ethers.ZeroAddress,
+    amountIn: 1n, sizeDelta: 1n, acceptablePrice: 1n, index: 1n, queueIndex: 1n,
+    blockNumber: 1n, blockTime: 1n, gasPrice: 1n, isLong: true,
+  }]);
+  const absent = iface.encodeEventLog('IncreasePositionNotExist', [7n]);
+  const effects = R.receiptEffects({
+    target: '0x0000000000000000000000000000000000000001',
+    interface: iface,
+  }, { logs: [
+    { address: '0x0000000000000000000000000000000000000001', topics: encoded.topics, data: encoded.data },
+    { address: '0x0000000000000000000000000000000000000001', topics: absent.topics, data: absent.data },
+  ] });
+  assert.equal(effects[0].key, key);
+  assert.equal(effects[1].effect, 'request-already-absent');
+  assert.equal(R.allowanceFailure({ message: 'execution reverted: ERC20: insufficient allowance' }), true);
+  assert.equal(R.allowanceFailure({ data: '0x08c379a0' + R.ethers.AbiCoder.defaultAbiCoder().encode(['string'], ['ERC20: insufficient allowance']).slice(2) }), true);
+  assert.equal(R.allowanceFailure({ reason: 'amount err' }), false);
 });
 test('preview encodes a transaction without reading a key or making any RPC calls', async () => {
   const originalLog = console.log, originalKeyFile = process.env.PRIVATE_KEY_FILE;

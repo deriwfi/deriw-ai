@@ -30,9 +30,11 @@ async function tradingPlan(action, args, config, provider, account) {
     const acceptable = R.slippagePrice(isLong === open ? max : min, isLong, open, bps);
     if (open) {
       const referral = args[4] || ethers.ZeroHash;
-      if (!ethers.isHexString(referral, 32)) throw new Error('Referral code must be bytes32');
+      if (!ethers.isHexString(referral, 32) || BigInt(referral) !== 0n) {
+        throw new Error('Market increase accepts only the zero referral code; bind a trading code separately');
+      }
       plan.method = 'createIncreasePosition';
-      plan.args = [[usdt], token, margin, size, isLong, acceptable, referral, ethers.ZeroAddress];
+      plan.args = [[usdt], token, margin, size, isLong, acceptable, ethers.ZeroHash, ethers.ZeroAddress];
     } else {
       plan.method = 'createDecreasePosition';
       plan.args = [[usdt], token, collateral, size, isLong, address(account), acceptable, ethers.ZeroAddress];
