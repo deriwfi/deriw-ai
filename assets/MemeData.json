@@ -210,6 +210,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "added",
+        "type": "bool"
+      }
+    ],
+    "name": "SetChannelWhitelist",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "amount",
@@ -340,6 +359,54 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "channelPoolDepositAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "channelPoolUnStakeAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -551,17 +618,17 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "tokenOut",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -569,22 +636,46 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "outAmount",
+        "name": "",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "burnGlpAmount",
+        "name": "",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "totalOutAmount",
+        "name": "",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "riskBuffer",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getGlobalLongAndShortSizes",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -686,6 +777,55 @@
       {
         "internalType": "uint256",
         "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "getUserChannelOutAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "outAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "burnGlpAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalOutAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "riskBuffer",
         "type": "uint256"
       }
     ],
@@ -883,6 +1023,25 @@
         "type": "address"
       }
     ],
+    "name": "isChannelWhitelist",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "name": "isPoolTokenClose",
     "outputs": [
       {
@@ -982,6 +1141,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_added",
+        "type": "bool"
+      }
+    ],
+    "name": "setChannelWhitelist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1147,6 +1324,40 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "currTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "validateChanneTime",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "poolStartTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "poolFreezeTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "poolEndTime",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

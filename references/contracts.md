@@ -65,6 +65,8 @@ Use `[USDT]` as path, 6 decimals for amountIn, 30 for size/collateral/acceptable
 The script performs one client status check after creation. For later checks use `POST /client/position_router/tx_status` with `{address,tx_hash,type}` (`type=0` increase, `1` decrease), then re-read the position. Missing indexing is pending/unknown. Cancellation uses the request **bytes32 key** from receipt events:
 
 ```bash
+node scripts/cancel-order.js position-increase 0xREQUEST_KEY [--send]
+node scripts/cancel-order.js position-decrease 0xREQUEST_KEY [--send]
 node scripts/contract-call.js PositionRouter cancelIncreasePosition '["0xREQUEST_KEY"]' [--send]
 node scripts/contract-call.js PositionRouter cancelDecreasePosition '["0xREQUEST_KEY"]' [--send]
 ```
@@ -85,6 +87,8 @@ node scripts/create-limit-close.js <token> <sizeUSD> <true|false> <triggerUSD> <
 Order indices are distinct from request keys. Retain indices from `CreateIncreaseOrder`/`CreateDecreaseOrder` receipt events. Fetch `/client/order/indices?address=...` and verify `increaseOrders(account,index)`/`decreaseOrders(account,index)` before cancellation. An empty API list is not proof that a known chain order has executed or disappeared:
 
 ```bash
+node scripts/cancel-order.js increase 0 [--send]
+node scripts/cancel-order.js decrease 0 [--send]
 node scripts/contract-call.js OrderBook cancelIncreaseOrder '["0"]' [--send]
 node scripts/contract-call.js OrderBook cancelDecreaseOrder '["0"]' [--send]
 node scripts/contract-call.js OrderBook cancelMultiple '[["0"],["1"]]' [--send]

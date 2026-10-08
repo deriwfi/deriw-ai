@@ -181,6 +181,31 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "openLeverage",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "liquidationLeverage",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetTokenLeverageConfig",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "components": [
           {
             "internalType": "address",
@@ -818,6 +843,45 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "size",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isLong",
+        "type": "bool"
+      }
+    ],
+    "name": "getDecreaseSlipPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "token",
         "type": "address"
       }
@@ -895,6 +959,45 @@
         "internalType": "uint256",
         "name": "size",
         "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isLong",
+        "type": "bool"
+      }
+    ],
+    "name": "getLiquidationPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "size",
+        "type": "uint256"
       }
     ],
     "name": "getLongNetAmount",
@@ -927,6 +1030,25 @@
       }
     ],
     "name": "getLongRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getMaxPrice",
     "outputs": [
       {
         "internalType": "uint256",
@@ -996,6 +1118,25 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getMinPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "min",
         "type": "uint256"
@@ -1055,12 +1196,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "bool",
-        "name": "isLong",
+        "name": "",
         "type": "bool"
       }
     ],
@@ -1079,12 +1220,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "bool",
-        "name": "isLong",
+        "name": "",
         "type": "bool"
       }
     ],
@@ -1396,12 +1537,36 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_indexToken",
+        "name": "",
         "type": "address"
       }
     ],
     "name": "getThresholdValue",
     "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getTokenLeverage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
       {
         "internalType": "uint256",
         "name": "",
@@ -1655,6 +1820,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "priceOracle",
+    "outputs": [
+      {
+        "internalType": "contract IPriceOracle",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -1775,16 +1953,29 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_thresholdValue",
+        "name": "",
         "type": "uint256"
       }
     ],
     "name": "setIndexTokenThresholdValue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_priceOracle",
+        "type": "address"
+      }
+    ],
+    "name": "setPriceOracle",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1815,6 +2006,49 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "_slippageControl",
+        "type": "address"
+      }
+    ],
+    "name": "setSlippageControl",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "indexToken",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "openLeverage",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "liquidationLeverage",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Slippage.TokenLeverageConfig[]",
+        "name": "eDtata",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "setTokenLeverageConfig",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "components": [
           {
             "internalType": "address",
@@ -1828,7 +2062,7 @@
           }
         ],
         "internalType": "struct Slippage.LeverageData[]",
-        "name": "eDtata",
+        "name": "",
         "type": "tuple[]"
       }
     ],
@@ -1848,6 +2082,19 @@
     "name": "setTreshold",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slippageControl",
+    "outputs": [
+      {
+        "internalType": "contract ISlippageControl",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1895,6 +2142,25 @@
       }
     ],
     "name": "tokenMaxLeverage",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tokenOpenLeverage",
     "outputs": [
       {
         "internalType": "uint256",

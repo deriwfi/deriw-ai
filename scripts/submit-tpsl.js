@@ -23,13 +23,18 @@ async function orderRows(input, config) {
   }));
 }
 
+function parseOrders(input) {
+  if (fs.existsSync(input)) return JSON.parse(fs.readFileSync(input, 'utf8'));
+  return JSON.parse(input);
+}
+
 async function main() {
   const argv = process.argv.slice(2), send = argv.includes('--send');
-  const [parentHash, file] = argv.filter(x => x !== '--send');
-  if (!R.ethers.isHexString(parentHash, 32) || !file) {
-    throw new Error('Usage: submit-tpsl.js <completed-market-open-hash> <orders.json> [--send]');
+  const [parentHash, ordersArg] = argv.filter(x => x !== '--send');
+  if (!R.ethers.isHexString(parentHash, 32) || !ordersArg) {
+    throw new Error('Usage: submit-tpsl.js <completed-market-open-hash> <orders.json|jsonString> [--send]');
   }
-  const config = R.network(), rows = await orderRows(JSON.parse(fs.readFileSync(file, 'utf8')), config);
+  const config = R.network(), rows = await orderRows(parseOrders(ordersArg), config);
   const plan = { contract: 'OrderBook', method: 'batchCreateDecreaseOrder', args: [rows] };
   await R.executePlan(config, null, plan, false);
   R.print({ route: '/client/order/tpsl', parentHash, mode: send ? 'send-via-api' : 'preview' });

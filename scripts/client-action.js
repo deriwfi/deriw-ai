@@ -2,11 +2,15 @@
 const fs = require('node:fs');
 const R = require('./lib/runtime');
 const { clientPlan, submit } = require('./lib/client-actions');
+function parsePayload(input) {
+  if (fs.existsSync(input)) return JSON.parse(fs.readFileSync(input, 'utf8'));
+  return JSON.parse(input);
+}
 async function main() {
   const argv = process.argv.slice(2), send = argv.includes('--send');
-  const [action, file] = argv.filter(x => x !== '--send');
-  if (!file) throw new Error('Usage: client-action.js <action> <request.json> [--send]');
-  const config = R.network(), plan = clientPlan(action, JSON.parse(fs.readFileSync(file, 'utf8')));
+  const [action, payloadArg] = argv.filter(x => x !== '--send');
+  if (!payloadArg) throw new Error('Usage: client-action.js <action> <request.json|jsonString> [--send]');
+  const config = R.network(), plan = clientPlan(action, parsePayload(payloadArg));
   R.print({ network: config.name, route: plan.route, fields: plan.body, signMessage: plan.message || null, mode: send ? 'send' : 'preview' });
   if (!send) return;
   R.assertWriteNetwork();
