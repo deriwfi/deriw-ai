@@ -1,812 +1,124 @@
-# DERIW Contract Method Reference
-
-> All contracts are on DERIW Chain (Chain ID: 2885, RPC: `https://rpc.deriw.com`).
-> One exception: `UserL2ToL3Router` is on Arbitrum (Chain ID: 42161).
-> ABI files are in the `assets/` directory.
-
----
-
-## Vault (Core Vault Contract)
-
-Address: `0xbd36B94f0b5A6F75dABa6e11ef3c383294470653`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getPosition(account, collateralToken, indexToken, isLong)` | address×3, bool | Get full position data for a user |
-| `getPositionKey(account, collateralToken, indexToken, isLong)` | address×3, bool | Compute unique position key (pure) |
-| `getPositionFrom(key)` | bytes32 | Read position directly by key |
-| `getDelta(indexToken, size, averagePrice, isLong, lastIncreasedTime)` | address, uint256×3, bool | Calculate current unrealized PnL |
-| `getMaxPrice(token)` | address | Token maximum price (for short open) |
-| `getMinPrice(token)` | address | Token minimum price (for long open) |
-| `getTokenData(indexToken, collateralToken)` | address×2 | Read token pool data |
-| `getAmount(token, account)` | address×2 | Account's token balance in Vault |
-| `poolAmounts(indexToken, collateralToken)` | address×2 | Total pool amount |
-| `reservedAmounts(indexToken, collateralToken)` | address×2 | Reserved amount for positions |
-| `guaranteedUsd(indexToken, collateralToken)` | address×2 | Total long guaranteed USD |
-| `globalLongSizes(indexToken)` | address | Global total long position size |
-| `globalShortSizes(indexToken)` | address | Global total short position size |
-| `globalLongAveragePrices(indexToken)` | address | Global long average entry price |
-| `globalShortAveragePrices(indexToken)` | address | Global short average entry price |
-| `maxGlobalLongSizes(indexToken)` | address | Long position size cap |
-| `maxGlobalShortSizes(indexToken)` | address | Short position size cap |
-| `tokenToUsdMin(token, tokenAmount)` | address, uint256 | Token amount → USD (min price) |
-| `usdToTokenMin(token, usdAmount)` | address, uint256 | USD → token amount (min price) |
-| `usdToTokenMax(token, usdAmount)` | address, uint256 | USD → token amount (max price) |
-| `validateLiquidation(account, collateralToken, indexToken, isLong, raise)` | address×3, bool×2 | Check if position can be liquidated |
-| `getCoinType(indexToken)` | address | Get token type (normal/Meme) |
-| `positions(key)` | bytes32 | Read position struct directly |
-| `whitelistedTokens(token)` | address | Whether token is whitelisted |
-| `stableTokens(token)` | address | Whether token is a stablecoin |
-| `shortableTokens(token)` | address | Whether token can be shorted |
-| `tokenDecimals(token)` | address | Token decimals |
-| `usdt()` | — | USDT contract address |
-| `marginFeeBasisPoints()` | — | Fee rate (basis points) |
-| `liquidationFeeUsd()` | — | Liquidation fee (USD) |
-| `maxLeverage()` | — | Maximum leverage multiplier |
-| `minProfitTime()` | — | Minimum profit protection duration |
-| `minProfitBasisPoints(token)` | address | Minimum profit basis points for token |
-
----
-
-## PositionRouter (Market Order Router)
-
-Address: `0x80257F37d327FA0EF464eFa64DdFb755dE111262`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getRequestKey(account, index)` | address, uint256 | Compute request key |
-| `increasePositionRequests(key)` | bytes32 | Read open position request details |
-| `decreasePositionRequests(key)` | bytes32 | Read close position request details |
-| `getIncreasePositionRequestPath(key)` | bytes32 | Read open position token path |
-| `getDecreasePositionRequestPath(key)` | bytes32 | Read close position token path |
-| `getSlippagePrice(key, indexToken, size, isLong)` | bytes32, address, uint256, bool | Get slippage price |
-| `getVaultPrice(indexToken, size, isLong)` | address, uint256, bool | Get Vault current execution price |
-| `increasePositionsIndex(account)` | address | Account open position request count |
-| `decreasePositionsIndex(account)` | address | Account close position request count |
-| `maxTimeDelay()` | — | Maximum execution delay time (seconds) |
-| `minAmount()` | — | Minimum trade amount |
-
-**Write Methods (user callable)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `createIncreasePosition(path, indexToken, amountIn, sizeDelta, isLong, acceptablePrice, referralCode, callbackTarget)` | — | Create market open position request |
-| `createDecreasePosition(path, indexToken, collateralDelta, sizeDelta, isLong, receiver, acceptablePrice, callbackTarget)` | — | Create market close position request |
-| `cancelIncreasePosition(key)` | bytes32 | Cancel unexecuted open position request |
-| `cancelDecreasePosition(key)` | bytes32 | Cancel unexecuted close position request |
-
-**Key Parameter Notes**
-
-- `path`: `[USDT]` (stablecoin as margin)
-- `amountIn`: `1e6` precision (USDT)
-- `sizeDelta`: `1e30` precision (USD)
-- `acceptablePrice`: Use `MaxUint256` for longs, `0n` for shorts (no slippage limit)
-- `referralCode`: Referral code (bytes32), pass `ethers.ZeroHash` if none
-- `callbackTarget`: Callback contract address, usually pass `ethers.ZeroAddress`
-
----
-
-## OrderBook (Limit Order Contract)
-
-Address: `0x86A0D906c6375846b05a0EF20931c1B4d2489C13`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getIncreaseOrder(account, orderIndex)` | address, uint256 | Read limit open order details |
-| `getDecreaseOrder(account, orderIndex)` | address, uint256 | Read limit close order details |
-| `getIncreaseOrderData(account, orderIndex)` | address, uint256 | Read open order extended data |
-| `increaseOrdersIndex(account)` | address | Account limit open order count |
-| `decreaseOrdersIndex(account)` | address | Account limit close order count |
-
-**Write Methods (user callable)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `createIncreaseOrder(path, amountIn, indexToken, sizeDelta, collateralToken, isLong, triggerPrice, triggerAboveThreshold, lever)` | — | Create limit open order |
-| `createDecreaseOrder(indexToken, sizeDelta, collateralToken, collateralDelta, isLong, triggerPrice, triggerAboveThreshold, lever)` | — | Create limit close order |
-| `cancelIncreaseOrder(orderIndex)` | uint256 | Cancel limit open order |
-| `cancelDecreaseOrder(orderIndex)` | uint256 | Cancel limit close order |
-| `cancelMultiple(increaseOrderIndexes, decreaseOrderIndexes)` | uint256[]×2 | Batch cancel orders |
-| `batchCreateDecreaseOrder(orders)` | tuple[] | Batch create limit close orders |
-
-**Key Parameter Notes**
-
-- `lever`: `sizeDelta * 10000n / parseUnits(amountIn, 30)` (open); pass `10000n` for close
-- `triggerAbove`: `true` = triggers when price breaks above (long take-profit/short stop-loss), `false` = triggers when price breaks below
-
----
-
-## VaultPriceFeed (Price Aggregator)
-
-Address: `0xEC7046731d5ef62Ce62C0291b7dF891E62aECC7E`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getPrice(token, maximise, _, _)` | address, bool×3 | Get final aggregated price |
-| `getPrimaryPrice(token, maximise)` | address, bool | Primary price source price |
-| `getLatestPrimaryPrice(token)` | address | Latest primary price source price |
-| `spreadBasisPoints(token)` | address | Token spread basis points |
-
----
-
-## FastPriceFeed (Fast Price)
-
-Address: `0x43948B78477963d7b408A0E27Ae168584C6E07A9`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getPrice(token, refPrice, maximise)` | address, uint256, bool | Get fast price |
-| `prices(token)` | address | Latest pushed on-chain price |
-| `getPriceData(token)` | address | Returns price metadata |
-| `lastUpdatedAt()` | — | Last update timestamp |
-| `lastUpdatedBlock()` | — | Last update block number |
-
----
-
-## PriceFeed (On-Chain Price Storage)
-
-Address: `0x83CA1aA2Bc20e41287154650e4161dC995278E1D`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `latestAnswer(token)` | address | Latest price answer |
-| `latestRound(token)` | address | Latest round |
-| `getRoundData(token, roundId)` | address, uint80 | Get historical round price |
-| `decimals()` | — | Price precision |
-
----
-
-## VaultUtils (Fee / Position Calculation Helper)
-
-Address: `0xfC21471Ef1D98A4e34B91A1EDeCB523ba4EA83D9`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getFeeBasisPoints(indexToken)` | address | Get fee basis points for token |
-| `getPositionFee(_, _, indexToken, _, sizeDelta)` | address×3, bool, uint256 | Calculate position fee |
-| `getCalculatePositionData(key, collateralToken, indexToken)` | bytes32, address×2 | Calculate detailed position data |
-| `validateLiquidation(account, collateralToken, indexToken, isLong, raise)` | address×3, bool×2 | Validate if position can be liquidated |
-
----
-
-## DataReader (On-Chain Data Aggregated Read)
-
-Address: `0x934B75A4f576738c1392a2af1BF8be1FBf52b53d`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `poolAmounts(indexToken, collateralToken)` | address×2 | Total pool amount |
-| `reservedAmounts(indexToken, collateralToken)` | address×2 | Reserved amount |
-| `guaranteedUsd(indexToken, collateralToken)` | address×2 | Guaranteed USD |
-| `tokenBalances(indexToken, collateralToken)` | address×2 | Token balances |
-| `getTargetIndexToken(indexToken)` | address | Get target indexToken |
-
----
-
-## GlpManager (GLP Liquidity Management)
-
-Address: `0xa61ddD4Cf723cDB339008021aD05e5a1BE140F3f`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getAmount(token, account)` | address×2 | Account GLP balance |
-| `lastAddedAt(account)` | address | Account's last liquidity addition time |
-| `cooldownDuration()` | — | Liquidity removal cooldown period |
-| `glp()` | — | GLP token contract address |
-| `usdt()` | — | USDT contract address |
-
----
-
-## GLP (GLP Token)
-
-Address: `0x9E06Fe81dCad8cdc624C4B5fb126Aeed0449CFc9`
-
-Standard ERC-20, 18 decimals.
-
-| Method | Parameters | Description |
-|---|---|---|
-| `balanceOf(account)` | address | Account GLP balance |
-| `totalSupply()` | — | Total GLP supply |
-| `allowance(owner, spender)` | address×2 | Approved allowance |
-
----
-
-## ADL (Auto-Deleveraging)
-
-| Method | Parameters | Description |
-|---|---|---|
-| `shouldExecuteADL(indexToken)` | address | Whether ADL needs to be triggered |
-| `getPoolNetPosition(indexToken)` | address | Pool net long/short direction |
-| `getPoolRealTimeNetValue(indexToken)` | address | Pool real-time net value |
-| `getPoolLever(indexToken)` | address | Pool current leverage ratio |
-| `getLeverageTriggerValue(indexToken)` | address | ADL trigger leverage threshold |
-| `getListADLPosition(targetIndexToken, index, num)` | address, uint256×2 | Paginated read of ADL candidate positions |
-| `batchGetPositions(positionData[])` | tuple[] | Batch read position data |
-
----
-
-## FundRouterV2 (Fund Pool V2 User Entry)
-
-Address: `0x3D343Fc0F6c6D2E047ec5e16e39A9b6A2031B9Ac`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `deposit(pool, pid, amount, isResubmit)` | address, uint256, uint256, bool | Deposit funds into specified pool/period |
-| `claim(pool, pid)` | address, uint256 | Claim single period rewards |
-| `batchClaim(pool, pid[])` | address, uint256[] | Batch claim multiple period rewards |
-| `compoundToNext(pool, pid, number)` | address, uint256×2 | Compound rewards into next period |
-
----
-
-## PoolDataV2 (Fund Pool V2 Data Layer)
-
-Address: `0x305507D45D5441B81F5dD8FF9f00f65e0B392e86`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getFoundInfo(pool, pid)` | address, uint256 | Get pool basic info |
-| `getFoundState(pool, pid)` | address, uint256 | Get pool state (fundraising progress/phase) |
-| `getUserInfo(user, pool, pid)` | address×2, uint256 | User's staking info in specified pool |
-| `getUserPerInfo(user, pool, pid, depositID)` | address×2, uint256×2 | User's specific deposit detailed data |
-| `getFundraisingAmount(pool, pid)` | address, uint256 | Total fundraising amount for current period |
-| `currPeriodID(pool)` | address | Current running period ID |
-| `poolToken(pool)` | address | Token address associated with pool |
-| `getAmount(token, account)` | address×2 | Account token balance |
-
----
-
-## FundReader (Fund Pool Read-Only Calculations)
-
-Address: `0x4D778dE09f5C043677bd18888114A9a0911dCE96`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getDepositLpAmount(pool, pid, amount, isNext)` | address, uint256×2, bool | Calculate LP amount receivable after deposit |
-| `getLpValue(pool, pid, tokenOut, glpAmount)` | address, uint256, address, uint256 | LP corresponding token value |
-| `getPrice(token)` | address | Get token price |
-| `getTokenValue(token, amount)` | address, uint256 | Token amount → USD value |
-| `getUserCompoundAmount(pool, user, pid)` | address×2, uint256 | User's compoundable amount |
-
----
-
-## MemeRouter (Meme Pool User Entry)
-
-Address: `0xf128817F665E8469BBC3d6f2ade7f073180a010E`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `deposit(pool, amount)` | address, uint256 | Deposit into Meme pool |
-| `claim(pool, amount)` | address, uint256 | Claim Meme pool rewards |
-| `claimAll()` | — | Claim all Meme pool rewards |
-
----
-
-## MemeData (Meme Pool Data Layer)
-
-Address: `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getMemeState(pool)` | address | Get Meme pool state |
-| `getMemeUserInfo(pool, user)` | address×2 | Get user's info in Meme pool |
-| `getUserDepositPoolNum(user)` | address | Total pools user participates in |
-| `getUserDepositPoolisIn(user, pool)` | address×2 | Whether user participates in pool |
-| `getAmount(token, account)` | address×2 | Account token balance |
-| `isTokenCreate(token)` | address | Whether Meme token has a pool created |
-| `tokenToPool(token)` | address | Token → corresponding pool address |
-| `poolToken(pool)` | address | Pool → corresponding token address |
-| `lockTime()` | — | Lock period duration |
-| `startTime(pool)` | address | Pool start time |
-
----
-
-## MemeFactory (Meme Pool Creation)
-
-Address: `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `createPool(token)` | address | Create Meme pool for specified token |
-| `getPoolNum(account)` | address | Number of pools created by account |
-| `getWhitelistIsIn(account)` | address | Whether account is on creation whitelist |
-| `poolID()` | — | Global pool ID counter |
-| `idToPool(id)` | uint256 | ID → pool address |
-| `poolOwner(pool)` | address | Pool owner |
-
----
-
-## MemePool (Meme Fund Pool)
-
-> Dynamically created on deployment, address queried via MemeData.tokenToPool(token).
-
-| Method | Parameters | Description |
-|---|---|---|
-| `withdraw()` | — | Withdraw expired staked assets and rewards |
-| `memeFactory()` | — | Associated MemeFactory address |
-
----
-
-## OrderBookReader (Order Book Batch Read)
-
-Address: `0x239e5A9813C469D86D3322133e3c1AbA77A412f8`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getIncreaseOrders(orderBookAddress, account, indices)` | address×2, uint256[] | Batch read limit open orders |
-| `getDecreaseOrders(orderBookAddress, account, indices)` | address×2, uint256[] | Batch read limit close orders |
-
----
-
-## Reader (On-Chain Data Batch Read)
-
-Address: `0x13633eC2B765fD9fFcc81C3c13daF91D9E4D6d00`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getPositions(vault, account, collateralTokens, indexTokens, isLong)` | address×2, address[], address[], bool[] | Batch read multiple position data |
-| `getVaultTokenInfo(vault, weth, tokens)` | address×2, address[] | Batch read Vault token info |
-| `getTokenBalances(account, tokens)` | address, address[] | Batch read account token balances |
-| `getCurrBlockNumber()` | — | Current block number |
-| `getCurrTime()` | — | Current timestamp |
-
----
-
-## VaultReader (Vault Extended Read)
-
-Address: `0x06C823B1fDb7f27a5116aAC8eA938ddFf1C03Fdb`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getVaultTokenInfoV4(vault, positionRouter, weth, tokens)` | address×3, address[] | Batch read Vault V4 full token info (including funding rates, utilization, etc.) |
-
----
-
-## ReferralStorage (Referral Code Storage)
-
-Address: `0x83a30fa6FA383FcA37AD1e72fFf927961e06cD79`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `ownerCode(account)` | address | Referral code held by account |
-| `codeOwner(code)` | string | Owner address for referral code |
-| `referral(account)` | address | Account's referrer address |
-| `getSecondaryAccount(account, index)` | address, uint256 | Account's index-th direct subordinate address |
-| `getSecondaryAccountLength(account)` | address | Total number of direct subordinates |
-| `getPartnerAccountAccountIsIn(user)` | address | Whether account is a partner |
-| `getPartnerAccountAccountLength()` | — | Total number of partners |
-
-**Write Methods (user callable)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `setTraderReferralCodeByUser(code)` | string | User self-binds referral code |
-
----
-
-## ReferralData (Fee Rebate Data)
-
-Address: `0x2Bd4B513C5B2aD07516CCA330DE1AE87B82FFA98`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getAmount(token, account)` | address×2 | Account's withdrawable rebate balance |
-| `totalIndex()` | — | Total fee records count |
-| `indexFee(index)` | uint256 | Fee amount for index-th record |
-
----
-
-## FeeBonus (Fee Reward Distribution)
-
-Address: `0x1F1E7D48424ed1BdF9cD7aEB85d319eFF0191A6E`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `feeAmount(account)` | address | Account's claimable fee rewards |
-| `feeMemeAmount(account)` | address | Account's claimable Meme fee rewards |
-| `feeRate(account)` | address | Account's fee reward ratio |
-| `claimFeeAmount(account)` | address | Claim fee rewards (USDT) |
-| `claimMemeFeeAmount(account)` | address | Claim Meme fee rewards |
-
----
-
-## GlpRewardRouter (GLP Router Read-Only)
-
-Address: `0xE9F045f0CE5dc1AD552e20E8df668194d67f95D5`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `glpManager()` | — | GlpManager contract address |
-| `foundReader()` | — | FundReader contract address |
-| `USDT()` | — | USDT contract address |
-| `pendingReceivers(account)` | address | Account pending receiver records |
-
----
-
-## TokenHelper (Signature Verification Tool)
-
-Address: `0xc5Ce3D29De397c4ec7C3f2b47ddD4608f8143e8c`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getSignatureUser(domain, message, signature)` | tuple×2, bytes | Recover signer address from signature (pure) |
-| `hashDomain(domain)` | tuple | Compute domain hash (pure) |
-| `hashMessage(message)` | tuple | Compute message hash (pure) |
-| `getTokenBalance(token, account)` | address×2 | Query account token balance |
-| `isHashUse(hash)` | bytes32 | Whether signature hash has been used |
-| `chainid()` | — | Current chain ID |
-
----
-
-## BlackList (System Circuit Breaker / Blacklist)
-
-Address: `0x24A3D7c8134238ea4Ec4e0feF288C2AD31852821`
-
-| Method | Parameters | Description |
-|---|---|---|
-| `isFusing()` | — | Whether system is in circuit breaker state |
-| `isStop()` | — | Whether system has stopped |
-| `getOperatorsContains(account)` | address | Whether account is an operator |
-
----
-
-## SwapToken (Token Burn Exchange)
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getUserBalance(token, user)` | address×2 | Query user's exchangeable balance for this token |
-| `getContractBalance(token)` | address | Query contract's token balance |
-| `getTokenTotalSupply(token)` | address | Total supply of this token |
-| `tokenBurnAmount(token)` | address | Cumulative burned amount of this token |
-| `basseRate()` / `tokenRate()` | — | Base exchange rate / global exchange ratio |
-
----
-
-## UserL2ToL3Router (L2 → L3 Cross-Chain Bridge)
-
-> **Chain**: Arbitrum (Chain ID: 42161)
-> Address: `0xaE7203eBA7E570A6B5C7A303987B6C824dF5A325`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getFee(token, amount)` | address, uint256 | Calculate cross-chain fee |
-| `getTokenIsIn(token)` | address | Whether token supports cross-chain |
-| `getUserDepositInfo(token, user)` | address×2 | User's cross-chain deposit info for this token |
-
-**Write Methods (user callable)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `outboundTransfer(_token, _to, _amount, _maxGas, _gasPriceBid, _data)` | address×2, uint256×3, bytes | Initiate L2→L3 cross-chain deposit (payable, requires ETH fee) |
-
----
-
-## UserL3ToL2Router (L3 → L2 Cross-Chain Bridge)
-
-> **Chain**: DERIW Chain (Chain ID: 2885)
-> Address: `0x8fb358679749FD952Ea5f090b0eA3675722B08F5`
-
-**Read Methods (view)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `getValue(token, amount)` | address, uint256 | Returns `[netAmount, fee]`: net amount received + ETH fee |
-| `getTokenIsIn(token)` | address | Whether token supports cross-chain |
-| `getUserDepositInfo(token, user)` | address×2 | User's withdrawal info for this token |
-| `isHashUse(hash)` | bytes32 | Whether signature hash has been used |
-
-**Write Methods (user callable, payable)**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `outboundTransfer(data, domain, message, signature)` | bytes, tuple×2, bytes | Initiate L3→L2 withdrawal (requires EIP-712 signature) |
-
-**EIP-712 Signature Structure (Message 8 fields)**
-
-```javascript
-// Enum values see references/addresses.md #Enum Constants
-const domain = {
-  name: 'DERIW', version: '1',
-  chainId: 2885,
-  verifyingContract: '0x8fb358679749FD952Ea5f090b0eA3675722B08F5'
-};
-const types = {
-  Message: [
-    { name: 'transactionType', type: 'string'  },  // 'Withdraw USDT'
-    { name: 'from',            type: 'address' },  // Sender address
-    { name: 'token',           type: 'address' },  // L3 USDT
-    { name: 'l2Token',         type: 'address' },  // Arbitrum USDT
-    { name: 'destination',     type: 'address' },  // Receiver address
-    { name: 'amount',          type: 'uint256' },  // Amount (1e6)
-    { name: 'deadline',        type: 'uint256' },  // Deadline timestamp
-    { name: 'chain',           type: 'string'  },  // 'DeriW Chain' (prod) / 'DeriW Devnet' (dev)
-  ]
-};
-const message = {
-  transactionType: 'Withdraw USDT',
-  from:            wallet.address,
-  token:           USDT_L3,
-  l2Token:         USDT_L2,
-  destination:     receiver,
-  amount,
-  deadline:        BigInt(Math.floor(Date.now() / 1000) + 600),
-  chain:           'DeriW Chain',  // use 'DeriW Devnet' for dev
-};
-const signature = await wallet.signTypedData(domain, types, message);
-const [, fee] = await router.getValue(USDT_L3, amount);
-const data = ethers.AbiCoder.defaultAbiCoder().encode(
-  ['address', 'uint256', 'address'], [USDT_L3, amount, receiver]
-);
-await router.outboundTransfer(data, domain, message, signature, { value: fee });
+# User contract workflows
+
+Use [networks.json](networks.json) for addresses and `assets/<Contract>.json` for exact signatures, including tuple components. All commands run from the skill folder. `--send` broadcasts; omitting it prints a transaction plan. Amounts in convenience commands are human decimal strings; JSON arguments to `contract-call.js` are raw on-chain units, with large integers quoted as strings.
+
+## Public reads
+
+```bash
+node scripts/contract-call.js PriceOracle getMaxMinPriceWithTime '["0xTOKEN"]'
+node scripts/contract-call.js Vault getPosition '["0xUSER","0xUSDT","0xINDEX_TOKEN",true]'
+node scripts/query-position.js 0xUSER 0xINDEX_TOKEN true
+node scripts/token-state.js 0xUSER [0xTOKEN] [0xSPENDER]
+node scripts/contract-call.js IERC20 decimals '[]' --at 0xTOKEN
+node scripts/contract-call.js PoolDataV2 getUserInfo '["0xUSER","0xPOOL","1"]'
+node scripts/contract-call.js MemeData getMemeUserInfo '["0xPOOL","0xUSER"]'
 ```
 
----
+`token-state.js` reads native balance, token decimals/balance, and optionally allowance; its default token is the selected USDT. `contract-call.js` accepts view/pure methods on configured, nondeprecated contracts. For a token or dynamically discovered pool, use its bundled ABI name with `--at 0xADDRESS`; address overrides are permitted for reads only. The RPC must have the selected chain ID and the target must have bytecode. A full ABI can also describe methods absent from a particular deployed version: a reverting read must be reported, never replaced with an assumed value.
 
-## Precision Reference
+Core `PriceOracle.getMaxMinPriceWithTime(token)` returns max/ask, min/bid and update time. Prices use 30 decimals. `getPrice(token)` returns a tuple (index token, ask, bid, mid), not a single scalar. Stored volatile-token prices do not expire automatically on read; market scripts check their age against the latest block (60 seconds by default, configurable with `DERIW_MAX_PRICE_AGE_SECONDS`). Stablecoin USDT is fixed at 1e30 with timestamp 0. Do not use it as an index token for a market order.
 
-| Value Type | Precision | ethers.js Example |
+`Vault.getPosition` returns size, collateral, averagePrice, a reserved funding-rate field (currently zero), reserveAmount, realisedPnl magnitude, hasRealisedProfit, lastIncreasedTime. Size/collateral/price use 30 decimals. API `/client/vault/position_tokens?account=...` discovers actual open-position tokens, including room mappings.
+
+## Token approvals
+
+The spender is the contract executing `transferFrom`, which can differ from the called contract.
+
+| Operation | User entrypoint | ERC-20 spender |
 |---|---|---|
-| Price (USD, main pool) | `1e30` | `ethers.parseUnits("65000", 30)` |
-| Price (USD, Edge Hour PriceOracle) | `1e18` | `ethers.formatEther(price)` |
-| USDT amount | `1e6` | `ethers.parseUnits("100", 6)` |
-| Token amount | `1e18` | `ethers.parseUnits("1", 18)` |
-| GLP / LP shares | `1e18` | `ethers.parseUnits("1", 18)` |
-| Fee basis points | `10000 = 100%` | `30 = 0.3%` |
-| Leverage (main pool) | `10000 = 1x` | `500000 = 50x` |
-| Leverage (Edge Hour template) | raw multiplier | `2000 = 20x` |
+| Market open | PositionRouter | Router |
+| Limit open | OrderBook | Router |
+| Fund deposit | FundRouterV2 | PoolDataV2 |
+| Meme deposit | MemeRouter | MemeData |
+| Room create/reopen/add funds | MemeFactory | MemeData |
+| Edge Hour ticket | ChallengeManager | ChallengeManager |
+| Edge Hour LP deposit | LPVault | LPVault |
+| L2 deposit / L3 withdrawal | Respective user bridge router | That same router |
 
----
+Convenience scripts read the allowance, reset nonzero insufficient allowance to zero if necessary, then approve the exact amount. They verify token balance and simulate sends. They do not grant unlimited approvals. Approval success alone does not prove the business transaction will succeed.
 
-## Edge Hour: ChallengeManager
+## Market requests
 
-Address:
-- Production: `0xBb1785B6A90819C11b8467ff85652661BE0286db`
-- Dev: `0x086603940a23464A60ABeBcD887524eD3b0f3150`
-
-ABI: `assets/edge_hour/ChallengeManager.json`
-
-> **Precision**: All amounts (ticketFee, sizeDelta, collateralDelta, currentBalance) use `1e6` (USDT unit)
-
-**Challenge Status Enum**
-
-| Value | Name | Description |
-|---|---|---|
-| `0` | None | Does not exist |
-| `1` | Active | Challenge in progress |
-| `2` | Passed | Profit target met, reward claimable |
-| `3` | Failed | Timed out or max drawdown triggered |
-| `4` | Claimed | Reward already claimed |
-
-**Read Methods (view)**
-
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `getChallengeTemplateLength()` | — | `uint256` | Total number of templates |
-| `getChallengeTemplate(templateId)` | `uint256` | `(params_tuple, isActive)` | Get template parameters (params[0]=maxTicketFee, [1]=initialBalance, [2]=targetBps, [3]=maxLossBps, [4]=duration, [5]=prizeMultiplierBps, [6]=tradeFeeBps, [7]=minTrades, [8]=minHoldTime, [9]=maintenanceMarginBps, [10]=maxSingleProfitBps, [11]=tokens[], [12]=leverages[]) |
-| `getActiveChallengeId(user)` | `address` | `(bool exists, uint256 challengeId)` | Query user's current active challenge |
-| `getChallengeState(challengeId)` | `uint256` | `UserChallengeState` | Full challenge state ([0]=user, [1]=status, [2]=activePositionCount, [3]=tradeCount, [4]=startTime, [5]=expiryTime, [6]=ticketFee, [7]=currentBalance, [8]=cappedEquity, [9]=referrerChallengeId, [10]=cappedProfit, [11]=currentLoss) |
-| `getPosition(challengeId, key)` | `uint256, bytes32` | `Position` | Get position (size/averagePrice/collateral/lastIncreaseTime, all 1e6) |
-| `getPositionKey(challengeId, indexToken, isLong)` | `uint256, address, bool` | `bytes32` | Compute unique position key (behaves as pure) |
-| `challengeMaxLeverage(challengeId, token)` | `uint256, address` | `uint256` | Max leverage for specified token in current challenge |
-| `templateMaxLeverage(templateId, token)` | `uint256, address` | `uint256` | Max leverage for specified token in template |
-| `addRewardNumber(challengeId)` | `uint256` | `uint256` | Claimable reward amount for this challenge |
-| `minPositionValueUsd()` | — | `uint256` | Minimum position value (1e6, default 10 USDT) |
-| `ticketUnit()` | — | `uint256` | Minimum ticket unit (5 USDT = 5000000) |
-| `nextChallengeId()` | — | `uint256` | Next challenge ID |
-| `referralConfig()` | — | `(inviterBonusBps, inviteeDurationBonusBps, inviteeTicketDiscountBps, maxRewardNumberCap)` | Referral configuration |
-| `paused()` | — | `bool` | Whether contract is paused |
-
-**Write Methods**
-
-| Method | Parameters | Description |
-|---|---|---|
-| `startChallenge(templateId, ticketFee)` | `uint256, uint256` | Start challenge; approve USDT first; ticketFee must be an exact multiple of ticketUnit |
-| `increasePosition(iPosition)` | `{challengeId, indexToken, sizeDelta, collateralDelta, isLong}` | Virtual open/increase position (no token transfer; sizeDelta/collateralDelta in 1e6) |
-| `closePosition(cPosition)` | `{challengeId, indexToken, isLong}` | Virtual full position close |
-| `claimReward(challengeId)` | `uint256` | Claim reward (status must be 2=Passed) |
-| `setTraderReferralCode(code, sType, challengeId)` | `string, uint8, uint256` | Set referral code (call after starting challenge) |
-
-**Key Events**
-
-| Event | Fields | Description |
-|---|---|---|
-| `ChallengeStarted` | `challengeId, templateId, templateParams, challengeState, paidTicketFee` | Challenge started |
-| `PositionIncreased` | `challengeId, positionKey, iPosition, price, newSize, newAveragePrice, user, fee` | Position opened/increased (price is 1e18; newSize/fee are 1e6) |
-| `PositionClosed` | `challengeId, positionKey, p, price, realizedPnl, user, fee, cappedProfit, cappedEquity` | Position closed (realizedPnl/fee/cappedProfit/cappedEquity are 1e6) |
-| `ChallengePassed` | `challengeId` | Challenge passed |
-| `ChallengeFailed` | `challengeId, reason` | Challenge failed |
-| `RewardClaimed` | `challengeId, user, amount` | Reward claimed (amount is 1e6) |
-
-**Usage Example**
-
-```javascript
-const { ethers } = require('ethers');
-const ABI = require('./assets/edge_hour/ChallengeManager.json');
-const IS_DEV = process.env.DEV === 'true';
-const ADDR = IS_DEV ? '0x086603940a23464A60ABeBcD887524eD3b0f3150' : '0xBb1785B6A90819C11b8467ff85652661BE0286db';
-const RPC  = IS_DEV ? 'https://rpc.dev.deriw.com' : 'https://rpc.deriw.com';
-
-const provider = new ethers.JsonRpcProvider(RPC);
-const wallet   = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const cm       = new ethers.Contract(ADDR, ABI, wallet);
-
-// Query user's active challenge
-const [exists, challengeId] = await cm.getActiveChallengeId(wallet.address);
-
-// Start challenge (approve USDT first)
-const gasOpts = IS_DEV ? { gasPrice: 0n } : {};
-await cm.startChallenge(templateId, ethers.parseUnits('5', 6), gasOpts);
-
-// Open virtual position (no token transfer)
-await cm.increasePosition({
-  challengeId,
-  indexToken: '0x9F37821B7C4A5EfaA4d92aa9A6dE526237C30ceD', // WBTC
-  sizeDelta:      ethers.parseUnits('1000', 6),  // 1000 USDT size
-  collateralDelta: ethers.parseUnits('100', 6),  // 100 USDT collateral (10x)
-  isLong: true,
-}, gasOpts);
-
-// Close position
-await cm.closePosition({ challengeId, indexToken, isLong: true }, gasOpts);
-
-// Claim reward
-await cm.claimReward(challengeId, gasOpts);
+```bash
+node scripts/create-market-open.js <indexToken> <marginUSDT> <sizeUSD> <true|false> [referralBytes32] [--send]
+node scripts/create-market-close.js <indexToken> <sizeUSD> <true|false> [collateralToWithdrawUSD] [--send]
 ```
 
----
+Set `DERIW_SLIPPAGE_BPS` explicitly: 100 bps is 1%. A preview of market close needs `DERIW_ACCOUNT`; a send uses the local signer's address as receiver. The optional close collateral delta defaults to 0; full close uses the actual current position size. Both entries require exact booleans.
 
-## Edge Hour: LPVault
+For an existing position, a market increase with size 0 can add margin; a market decrease with size 0 and positive collateral delta requests collateral withdrawal. Both deltas cannot be zero. Eligibility and leverage remain subject to contract simulation.
 
-Address:
-- Production: `0x29F463c832C03076ab2cB9734fD6C0e3B135B00b`
-- Dev: `0x2eB88D51C30708f8539c949855F39861e7f3adB5`
-
-ABI: `assets/edge_hour/LPVault.json`
-
-> **Note**: `deposit()` requires `whitelist(addr) == true`, added by the contract owner via `addToWhitelist()`.
-
-**Read Methods**
-
-| Method | Returns | Description |
+| Request | Reference quote | Acceptable bound |
 |---|---|---|
-| `totalAssets()` | `uint256` | Total vault assets (1e6 USDT) |
-| `availableLiquidity()` | `uint256` | Available liquidity (1e6) |
-| `lpAssetBalance()` | `uint256` | LP asset balance (1e6) |
-| `sharePrice()` | `uint256` | USDT per share (1e18, initially 1.0) |
-| `totalSupply()` | `uint256` | Total LP shares (1e18) |
-| `balanceOf(account)` | `uint256` | User LP shares (1e18) |
-| `maxWithdraw(user)` | `uint256` | User's maximum withdrawable amount (1e6 USDT) |
-| `previewWithdraw(assets)` | `uint256 shares` | Shares burned to withdraw the given assets (USDT) |
-| `getStatistics()` | `(totalFees, totalRewards, netProfit, currentBalance, pending)` | Global stats, all in 1e6 |
-| `protocolFeeConfig()` | `(ticketFeeBps, rewardFeeBps, feeRecipient)` | Protocol fee configuration |
-| `pendingRewards()` | `uint256` | Pending rewards (1e6) |
-| `totalPotentialPayout()` | `uint256` | Maximum potential payout for all active challenges (1e6) |
-| `whitelist(address)` | `bool` | Whether address is whitelisted |
-| `maxVaultUtilizationBps()` | `uint256` | Maximum utilization rate (bps, 8000=80%) |
-| `paused()` | `bool` | Whether contract is paused |
+| Long increase | Ask/max | quote × (1 + tolerance) |
+| Short increase | Bid/min | quote × (1 − tolerance) |
+| Long decrease | Bid/min | quote × (1 − tolerance) |
+| Short decrease | Ask/max | quote × (1 + tolerance) |
 
-**Write Methods**
+Methods (argument order):
 
-| Method | Parameters | Description |
-|---|---|---|
-| `deposit(assets)` | `uint256` | Deposit USDT (1e6), returns LP shares received; approve USDT first; address must be whitelisted |
-| `withdraw(assets)` | `uint256` | Redeem USDT (1e6), burns corresponding LP shares; call `maxWithdraw` first to confirm available amount |
+- `createIncreasePosition(path,indexToken,amountIn,sizeDelta,isLong,acceptablePrice,referralCode,callbackTarget)`
+- `createDecreasePosition(path,indexToken,collateralDelta,sizeDelta,isLong,receiver,acceptablePrice,callbackTarget)`
 
-**Usage Example**
+Use `[USDT]` as path, 6 decimals for amountIn, 30 for size/collateral/acceptable price, zero callback, and zero referral hash if absent. Creation transfers/locks collateral and creates a request; it does not immediately establish the resulting position.
 
-```javascript
-const ABI  = require('./assets/edge_hour/LPVault.json');
-const vault = new ethers.Contract(LP_VAULT_ADDR, ABI, wallet);
+The script performs one client status check after creation. For later checks use `POST /client/position_router/tx_status` with `{address,tx_hash,type}` (`type=0` increase, `1` decrease), then re-read the position. Missing indexing is pending/unknown. Cancellation uses the request **bytes32 key** from receipt events:
 
-// Deposit (whitelist required)
-const amount = ethers.parseUnits('100', 6);
-await usdt.approve(LP_VAULT_ADDR, ethers.MaxUint256);
-await vault.deposit(amount, gasOpts);
-
-// Query max withdrawable amount
-const max = await vault.maxWithdraw(wallet.address);
-// Withdraw
-await vault.withdraw(max, gasOpts);
-
-// Query statistics
-const stats = await vault.getStatistics();
-console.log('totalFees:', Number(stats.totalFees)/1e6, 'USDT');
+```bash
+node scripts/contract-call.js PositionRouter cancelIncreasePosition '["0xREQUEST_KEY"]' [--send]
+node scripts/contract-call.js PositionRouter cancelDecreasePosition '["0xREQUEST_KEY"]' [--send]
 ```
 
----
+Cancellation is for the caller's request and may be subject to contract delay. Never call `execute*` or impersonate a keeper.
 
-## Edge Hour: PriceOracle
+## Limit orders and TP/SL
 
-Address:
-- Production: `0x493De553C9948f463f31249833D4d02D6DF9d0cB`
-- Dev: `0x6dc3EAcAA36adA3f32Fefe3522361E1Fb6D23EcC`
-
-ABI: `assets/edge_hour/PriceOracle.json`
-
-> **Precision**: `getPrice()` returns `price * 1e18` (differs from the main pool VaultPriceFeed which uses 1e30)
-
-**Read Methods**
-
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `getPrice(indexToken)` | `address` | `uint256` | Get token price (1e18 precision), e.g. BTC=70000 → 70000×10¹⁸ |
-| `fastPriceFeed()` | — | `address` | Underlying FastPriceFeed address |
-| `maxPriceTime()` | — | `uint256` | Maximum price validity duration (seconds) |
-
-**Usage Example**
-
-```javascript
-const ABI    = require('./assets/edge_hour/PriceOracle.json');
-const oracle = new ethers.Contract(PRICE_ORACLE_ADDR, ABI, provider);
-
-const rawPrice = await oracle.getPrice(WBTC_ADDR);
-console.log('BTC price:', ethers.formatEther(rawPrice), 'USD'); // formatEther = /1e18
+```bash
+node scripts/create-limit-open.js <token> <marginUSDT> <sizeUSD> <true|false> <triggerUSD> <triggerAbove> [--send]
+node scripts/create-limit-close.js <token> <sizeUSD> <true|false> <triggerUSD> <triggerAbove> [collateralUSD] [--send]
 ```
 
----
+`triggerAbove=true` means strictly above the trigger; false means strictly below. For a long close, above is take-profit and below stop-loss; reverse these for a short close. Contracts may reject a trigger inconsistent with the current price/position.
 
-## Room Mode (channel pools)
+`createIncreaseOrder(path,amountIn,indexToken,sizeDelta,collateralToken,isLong,triggerPrice,triggerAboveThreshold,lever)` uses 6-decimal margin, 30-decimal size/trigger, and leverage scaled by 10000. The helper calculates leverage with integers. `createDecreaseOrder(indexToken,sizeDelta,collateralToken,collateralDelta,isLong,triggerPrice,triggerAboveThreshold,lever)` uses 30-decimal amounts and `lever=10000` for its close convention.
 
-Room mode ("channel pools") has **no dedicated contract deployment** — it reuses the contracts below.
-A room is a host-created isolated liquidity pool; its per-room pool address is produced by
-`MemeFactory.createChannelPool` and tracked server-side (query via `GET /client/room/pool-status`).
-Most room data is served over HTTP (see `references/api.md` §3.13); these are the on-chain reads behind it.
-ABIs: `assets/room/{Phase,Slippage,MemeFactory,MemeData,Vault,VaultUtils}.json`.
+Order indices are distinct from request keys. Fetch `/client/order/indices?address=...` and verify chain data before cancellation:
 
-### Phase (liquidity / open-interest values)
+```bash
+node scripts/contract-call.js OrderBook cancelIncreaseOrder '["0"]' [--send]
+node scripts/contract-call.js OrderBook cancelDecreaseOrder '["0"]' [--send]
+node scripts/contract-call.js OrderBook cancelMultiple '[["0"],["1"]]' [--send]
+```
 
-Address: Production `0x463c7e40A4eE5e4E2072055aFa14a15E88b38F5a` · Dev `0xaA71758134ea73Ad47ff04104b96986C5C3BBd16`
+`batchCreateDecreaseOrder(tuple[])` is supported with the same decrease-order tuple fields. Do not call `cancel*For`, batch account cancellation or `execute*`; those require service roles. A trigger order creation receipt does not mean it has executed.
 
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `getValue(user, indexToken, isLong)` | address, address, bool | `uint256, uint256` | Available liquidity components for a position |
-| `getLongShortValue(indexToken)` | address | `int256 long, int256 short` | Aggregate long/short value (OI / PnL basis) |
-| `getIndextokenValue(indexToken)` | address | `uint256` | Index-token aggregate value |
-| `getPoolRealTimeNetValue(indexToken, tokenOut, glpAmount)` | address, address, uint256 | `uint256` | Real-time net value for a pool amount |
+## Fund Pool V2
 
-### Slippage (per-token leverage)
+Discover fundraising pools via `/client/foundpool/lists?status=1` (2=running, 3=ended). Read the chosen pool, period, minimum deposit, start/end/lock time and the user's state first.
 
-Address: Production `0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E` · Dev `0x3600Cc37027146d0E9cf0E146D21390CFF474d75`
+```bash
+node scripts/fund-deposit.js <pool> <pid> <amountInPoolTokenUnits> [--send]
+node scripts/contract-call.js FundRouterV2 claim '["0xPOOL","1"]' [--send]
+node scripts/contract-call.js FundRouterV2 batchClaim '["0xPOOL",["1","2"]]' [--send]
+node scripts/contract-call.js FundRouterV2 setIsResubmit '["0xPOOL","1",true]' [--send]
+```
 
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `getTokenMaxLeverage(indexToken)` | address | `uint256` | Max leverage (10000 = 1x; e.g. 2000000 = 200x) |
-| `getPositionLeverage(account, collateralToken, indexToken, isLong)` | address×3, bool | `uint256` | Current position leverage |
-| `tokenMaxLeverage(indexToken)` | address | `uint256` | Raw stored max-leverage mapping |
+The deposit script obtains the actual token from `PoolDataV2.poolToken(pool)`, reads its decimals, and calls `deposit(pool,pid,amount,false)`. Do not assume every fund pool uses USDT. `claim` redeems according to period eligibility. `compoundToNext`, pool GLP operations, new-period creation and manager configuration are role-restricted and are not ordinary depositor operations.
 
-### MemeData — channel (room) methods
+## Meme pools
 
-Address: Production `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8` · Dev `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1`
+Discover pools with `/client/memepool/lists` or `MemeData.tokenToPool(token)`.
 
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `getChannelOutAmount(indexToken, tokenOut, amount)` | address, address, uint256 | `uint256 ×4` (out, total, …) | Convert channel-pool LP amount → USDT; **pool equity** basis (pass `poolTargetToken`, USDT, `lp_total_supply`) |
-| `getChannelGlpAmount(indexToken, collateralToken, amount)` | address, address, uint256 | `uint256` | GLP amount for a channel deposit |
-| `channelUserInfo(user, pool, id)` | address, address, uint256 | `uint256 ×3` | Per-user channel-pool position info |
+```bash
+node scripts/pool-action.js meme-deposit <pool> <USDT> [--send]
+node scripts/contract-call.js MemeRouter claim '["0xPOOL","RAW_CLAIM_AMOUNT"]' [--send]
+node scripts/contract-call.js MemeRouter claimAll '[]' [--send]
+```
 
-### MemeFactory — channel (room) methods
+Deposits use USDT (6 decimals). For `claim(pool,amount)`, first read `MemeData.getMemeState(pool).isStake`: if true, amount is raw GLP shares (18 decimals, bounded by user glpAmount); if false, amount is raw deposited USDT (6 decimals, bounded by user depositAmount). Inspect `getMemeUserInfo` before choosing it. `claimAll` selects these units internally across the caller’s pools. Do not call `MemePool.withdraw`: it is a data-layer-only method, not a user withdrawal API. `MemeFactory.createPool(token)` is only for an already whitelisted creator (`getWhitelistIsIn(account)`); do not add the user to a whitelist.
 
-Address: Production `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e` · Dev `0x4C74F6e60736130247c8b53807b627FeD558cA77`
+## Privileged ABI surface
 
-| Method | Parameters | Returns | Description |
-|---|---|---|---|
-| `createChannelPool(amount, mode)` | uint256, uint256 | — | Create a room channel pool (mode 1=Principal, 2=Equity) |
-| `depositChannel(amount)` / `claimChannel(amount)` | uint256 | — | Host add liquidity / claim |
-| `channelOwnerPool(host)` | address | `address` | Host → their channel-pool address |
-| `getChannelPoolTargetToken(pool)` | address | `address, address` | Pool → (poolTargetToken, mappedPoolTargetToken) |
-| `getChannelState(user, indexToken)` | address, address | `address pool, address owner, address mappedToken, uint256 freezeTime, bool isClose, bool isPause, bool isBlacklisted` | Channel state for a user/token |
-| `channelPoolToken(pool)` / `channelPoolMode(pool)` / `channelPoolIsClose(pool)` | address | address / uint256 / bool | Pool token, capacity mode, closed flag |
-| `setChannelPoolConfig(perWithdrawRate, withdrawalNumber, windowTime)` | uint256×3 | — | Global withdrawal limits (admin) |
+Users may bind their own existing referral code using `ReferralStorage.setTraderReferralCodeByUser(string)` through `contract-call.js`. Read the current referral first; do not batch-register codes or change source-contract permissions. `FeeBonus.claimFeeAmount` requires a configured handler in practice (an ordinary caller may receive a zero result), and direct `GlpRewardRouter` liquidity operations require authorized pool callers. Neither is an ordinary user redemption shortcut.
 
-> **Vault** (`poolAmounts(poolTargetToken, USDT)` → TVL lockup, 1e6) and **VaultUtils** (`getPositionFee`)
-> are the same core contracts documented above; room reuses them with the room's `poolTargetToken` /
-> mapped index tokens.
+Full ABI exports include governance, keeper and internal methods for decoding. `initialize`, upgrades, governance/role setters, oracle `batchSetPrices`, vault direct mutations, liquidations, pool-data mutations, and fund-manager operations are not enabled by this skill. A user signature proves identity; it does not create those roles. Host-specific `MemeFactory` writes are covered separately in [room.md](room.md).
