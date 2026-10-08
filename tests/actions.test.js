@@ -87,3 +87,30 @@ test('bridge source configuration isolates chains and alias arithmetic wraps at 
   assert.equal(alias(R.ethers.ZeroAddress).toLowerCase(), '0x1111000000000000000000000000000000001111');
   assert.equal(alias('0xffffffffffffffffffffffffffffffffffffffff').toLowerCase(), '0x1111000000000000000000000000000000001110');
 });
+
+test('cancelPlan correctly encodes order cancellation for limit and market positions', () => {
+  const { cancelPlan } = require('../scripts/cancel-order');
+  const dummyKey = '0x' + '11'.repeat(32);
+  const inc = cancelPlan('increase', '5');
+  assert.equal(inc.contract, 'OrderBook');
+  assert.equal(inc.method, 'cancelIncreaseOrder');
+  assert.deepEqual(inc.args, [5n]);
+
+  const dec = cancelPlan('decrease', '8');
+  assert.equal(dec.contract, 'OrderBook');
+  assert.equal(dec.method, 'cancelDecreaseOrder');
+  assert.deepEqual(dec.args, [8n]);
+
+  const posInc = cancelPlan('position-increase', dummyKey);
+  assert.equal(posInc.contract, 'PositionRouter');
+  assert.equal(posInc.method, 'cancelIncreasePosition');
+  assert.deepEqual(posInc.args, [dummyKey]);
+
+  const posDec = cancelPlan('position-decrease', dummyKey);
+  assert.equal(posDec.contract, 'PositionRouter');
+  assert.equal(posDec.method, 'cancelDecreasePosition');
+  assert.deepEqual(posDec.args, [dummyKey]);
+
+  assert.throws(() => cancelPlan('unknown', '1'), /Unknown order type/);
+  assert.throws(() => cancelPlan('position-increase', '0x123'), /32-byte hex/);
+});

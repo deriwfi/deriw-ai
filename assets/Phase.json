@@ -227,6 +227,49 @@
     "type": "event"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "updateAccount",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "beforeLongAveragePrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "afterLongAveragePrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "beforeShortAveragePrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "afterShortAveragePrice",
+        "type": "uint256"
+      }
+    ],
+    "name": "UpdateAveragePrice",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "DECI",
     "outputs": [
@@ -665,6 +708,50 @@
         "type": "uint256"
       }
     ],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_size",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_averagePrice",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isLong",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_lastIncreasedTime",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDeltaForLiquidation",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   },
@@ -672,17 +759,17 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "int256",
-        "name": "ratePoolValue",
+        "name": "",
         "type": "int256"
       },
       {
         "internalType": "int256",
-        "name": "loss",
+        "name": "",
         "type": "int256"
       }
     ],
@@ -778,12 +865,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "longValue",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -826,7 +913,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_indexToken",
+        "name": "",
         "type": "address"
       },
       {
@@ -856,7 +943,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "_lastIncreasedTime",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -868,7 +955,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -1034,12 +1121,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "shortValue",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -1206,12 +1293,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "pool",
+        "name": "",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "indexToken",
+        "name": "",
         "type": "address"
       }
     ],
@@ -1628,6 +1715,24 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_account",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "setUpdateAccount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "sideRate",
     "outputs": [
@@ -1766,6 +1871,55 @@
         "internalType": "bytes32",
         "name": "",
         "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "updateAccount",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_globalLongAveragePrices",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_globalShortAveragePrices",
+        "type": "uint256"
+      }
+    ],
+    "name": "updateAveragePrice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "updateToken",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
