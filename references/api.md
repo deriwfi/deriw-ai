@@ -1,6 +1,6 @@
 # Client HTTP API
 
-Choose `apiBase` from [networks.json](networks.json). This skill uses the user-facing `/client/*` surface only; it does not require service endpoints, internal APIs, database access or API keys from the operator.
+Choose `apiBase` from [networks.json](networks.json). Client endpoints use the `/client/*` prefix.
 
 ## Calling and decoding
 
@@ -55,7 +55,7 @@ All paths below are GET `/client/portfolio/<name>`. Financial outputs are string
 {"address":"0xUSER","tx_hash":"0xCREATE_REQUEST_HASH","type":0}
 ```
 
-`type=0` increase/open, `1` decrease/close. `data.status` comes from the creation record: 1=created, 2=completed, 3=failed, 4=cancelled. An absent record or 0 is unknown/not yet indexed. Do not interpret an execution-worker retry enum as a guaranteed value from this endpoint. `cancel_type` when supplied is 0=ordinary, 1=slippage, 2=liquidation. Cross-check creation/execution events and the resulting position.
+`type=0` increase/open, `1` decrease/close. `data.status` comes from the creation record: 1=created, 2=completed, 3=failed, 4=cancelled. An absent record or 0 is unknown/not yet indexed. `cancel_type` when supplied is 0=ordinary, 1=slippage, 2=liquidation. Cross-check creation/execution events and the resulting position.
 
 `GET /client/transaction/status` takes required `tx_hash` and `type` (method-name string such as `createIncreasePosition`, `createDecreasePosition`, `createIncreaseOrder`, `createDecreaseOrder`, `batchCreateDecreaseOrder`, `cancelIncreaseOrder`, `liquidatePosition`). Its `data.list` contains display fields such as coin_name, is_long, size and order_type. It is not an RPC transaction-receipt replacement.
 
@@ -131,7 +131,7 @@ Template data includes template_id, max_ticket_price, duration, tokens, leverage
 
 GET `/client/invite_return/v2/` paths `apply_agent_status`, `user_info`, `user_invitees`, `invite_return_records`, `invite_friends` require `account`; paginated lists use page_index≥1/page_size≤100. GET `/client/point_benefit/return_fees_records` is the points rebate history. Check the specific request fields when using its filters.
 
-User-facing signed mutations (not supported by the read-only CLI; use an explicitly authorized wallet integration):
+Use [client-action.js](actions.md#signed-client-api-actions) for these signed mutations:
 
 - POST `/client/invite_return/v2/apply_agent`: account, username (≤20 chars), country (≤20), nonempty unique platforms, nonempty profiles (`link`, `follower_count`), optional image_ids, plan_to_promote_dw, joined_similar_affiliate_name, and signature. Sign exactly `Apply to become affiliate` with EIP-191.
 - POST `/client/invite_return/v2/set_return_rate`: account (parent), return_rate (0..10000), signature, optional invitee. Sign exactly `Confirm the rebate ratio` with EIP-191. The server validates referral hierarchy; signing does not grant authority over unrelated accounts.

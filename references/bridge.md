@@ -1,49 +1,37 @@
-# User bridge operations
+# Bridge deposits and withdrawals
 
-The supplied user-router addresses belong to distinct source chains. Always check source chain ID and bytecode. The source receipt and destination settlement are separate outcomes; do not promise a fixed arrival time or repeat a transfer because indexing is delayed.
+Select the DERIW destination/source with `DERIW_NETWORK`. The bridge source chain is configured under `bridge` in [networks.json](networks.json), or through `DERIW_L2_RPC_URL` and `DERIW_L2_CHAIN_ID`. Verify the expected chain and gateway token mapping before a transfer. A source transaction and destination delivery are separate outcomes.
 
-## L2 → DERIW deposit
+## Deposit to DERIW
+
+Generate a fresh quote without a private key:
 
 ```bash
-node scripts/crosschain-deposit.js <USDT> <quote.json> [--send]
+node scripts/bridge-quote.js <USDT> <account> quote.json
+node scripts/crosschain-deposit.js <USDT> quote.json
+# Add --send to the second command to submit the authorized deposit.
 ```
 
-Select the destination with `DERIW_NETWORK`. Set the separately verified `DERIW_L2_RPC_URL` and `DERIW_L2_CHAIN_ID`. The supplied address list does not specify the L2 mapping or a live retryable-ticket fee quote; do not infer it from the L3 chain ID. The script reads the L2 router's `l2Usdt()` and token decimals. A preview also requires public `DERIW_ACCOUNT`.
+The quote helper reads the gateway, counterpart, inbox, token mapping and fee model. It estimates retryable execution through the destination NodeInterface and reads the inbox submission fee. It uses a 30% execution-gas buffer and doubles current gas/submission prices. Quotes expire after five minutes. Custom gas-token chains encode the gas-token fee and check the router's fee-token balance; native-fee chains include the quoted native value. Source transaction gas is charged separately.
 
-A current quote file must contain:
+The quote is bound to source/destination chain IDs, user router, token, receiver and amount. The deposit command rejects mismatches and expired quotes. It approves the user router for the needed token amount, simulates, submits once and prints the hash. If quoting or simulation fails, preserve the error instead of substituting fee values. The destination token balance must be checked separately after source confirmation.
 
-```json
-{
-  "sourceChainId": "L2_CHAIN_ID",
-  "destinationChainId": "L3_CHAIN_ID",
-  "router": "0xL2_USER_ROUTER",
-  "token": "0xL2_USDT",
-  "receiver": "0xUSER",
-  "amount": "RAW_TOKEN_AMOUNT",
-  "maxGas": "QUOTED_LIMIT",
-  "gasPriceBid": "QUOTED_WEI",
-  "data": "0xENCODED_GATEWAY_DATA",
-  "value": "QUOTED_NATIVE_WEI",
-  "expiresAt": "UNIX_SECONDS"
-}
-```
+Quote files contain public transfer parameters only: `sourceChainId`, `destinationChainId`, `router`, `token`, `receiver`, `amount`, `maxGas`, `gasPriceBid`, `data`, `value`, `expiresAt`, and fee details. Amounts are raw integer strings. Review `value`, `tokenFee` and `feeTokenAmount` before sending.
 
-Obtain quote values from the supported bridge/gateway integration for that source/destination pair. This package does not invent an estimator endpoint. If no such quote/configuration is available, this flow is blocked until supplied; other client/trading tests can continue. No hardcoded gas, fallback fees, presumed zero-fee dev path or copied historical calldata is used.
+The source RPC defaults for dev/test use Arbitrum Sepolia. Public RPC details are listed in [Arbitrum's RPC reference](https://docs.arbitrum.io/arbitrum-essentials/reference/node-providers). Retryable estimation uses [NodeInterface](https://docs.arbitrum.io/arbitrum-essentials/nodeinterface), and calldata is obtained from the deployed gateway's public method. Custom gas-token quotes encode `(maxSubmissionCost, bytes callHookData, tokenTotalFeeAmount)` as defined by the [Orbit ERC-20 gateway](https://github.com/OffchainLabs/token-bridge-contracts/blob/main/contracts/tokenbridge/ethereum/gateway/L1OrbitERC20Gateway.sol).
 
-`getFee(token,amount)` is a **token fee**, not the ETH/native retryable submission fee. `outboundTransfer(token,to,amount,maxGas,gasPriceBid,data)` uses native `value` from the quote. Approve the user L2 router for the full token amount. Verify destination balance separately.
-
-## DERIW → L2 withdrawal
+## Withdraw from DERIW
 
 ```bash
 node scripts/crosschain-withdraw.js <USDT> [receiver] [--send]
 ```
 
-The script checks `l3Usdt()` against configured collateral, derives the actual L2 token from the bridged token's public `l1Address()` getter, reads token decimals and `getValue(token,amount)` (net amount, token fee). There is no fallback to a production L2 token.
+A preview requires `DERIW_ACCOUNT`; a send uses the local wallet. The default receiver is the same wallet on the destination chain. The helper validates `l3Usdt()`, derives the L2 token from `l1Address()`, and reads `getValue(token,amount)`, whose outputs are **token fee first, net amount second**. The message amount and approval are the gross amount.
 
-The signature is EIP-712-style with a contract-specific type hash. Do not use a generic `Message` type or `personal_sign` on the digest. Domain name is `Transaction`, version `1`, verifyingContract is the selected router; domain chainId is read from `router.chainid()`, not assumed to equal RPC chain ID. Message fields in order:
+The router uses a contract-specific EIP-712 digest. Domain name is `Transaction`, version `1`, verifyingContract is the user router, and domain chainId comes from `router.chainid()`. Message fields are `transactionType, from, token, l2Token, destination, amount, deadline, chain`. The exact message type is:
 
-`transactionType, from, token, l2Token, destination, amount, deadline, chain`
+`DexTransaction:Withdraw(string Transaction_Type,address From,address Token,address L2Token,address Destination,uint256 Amount,uint256 Deadline,string Chain)`
 
-The script uses `transactionType="Withdraw USDT"`; chain labels are `DeriW Devnet` for dev, `DeriW Chain` for mainnet. Test requires a confirmed `DERIW_BRIDGE_CHAIN_LABEL`; it can also explicitly override another environment's label. Hash via `hashDomain`, `hashMessage`, `hashData`; sign the resulting digest without an EIP-191 prefix, and verify `getSignatureUser` recovers the sender.
+The helper calls `hashDomain`, `hashMessage` and `hashData`, signs the digest without an EIP-191 prefix, and checks `getSignatureUser`. Signature bytes and signed calldata are not printed. It submits `outboundTransfer` after token approval and simulation. Messages expire in ten minutes.
 
-The CLI uses a local signer for this digest; an external wallet integration must reproduce the exact contract type string and field capitalization. Signature and raw signed calldata are never logged. The message expires in ten minutes. `outboundTransfer('0x',domain,message,signature)` is sent with value 0 for this token-withdrawal path after exact allowance to the user L3 router. Contract simulation is required. Do not use `withdrawETH`, `transferTo`, or bridge owner/relayer methods.
+Chain labels are `DeriW Devnet` for dev and `DeriW Chain` for mainnet. Set `DERIW_BRIDGE_CHAIN_LABEL` for another deployment. A withdrawal can require a separate destination finalization after the bridge's confirmation period. Source confirmation is not proof of L2 receipt; track the wallet's destination token balance and transfer status before initiating another transfer.
