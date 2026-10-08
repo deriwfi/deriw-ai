@@ -59,6 +59,19 @@ All paths below are GET `/client/portfolio/<name>`. Financial outputs are string
 
 `GET /client/transaction/status` takes required `tx_hash` and `type` (method-name string such as `createIncreasePosition`, `createDecreasePosition`, `createIncreaseOrder`, `createDecreaseOrder`, `batchCreateDecreaseOrder`, `cancelIncreaseOrder`, `liquidatePosition`). Its `data.list` contains display fields such as coin_name, is_long, size and order_type. It is not an RPC transaction-receipt replacement.
 
+## Submit signed TP/SL orders
+
+`POST /client/order/tpsl` accepts `{account,order_hash,tx_hex}`. `order_hash` identifies the parent market request; `tx_hex` is a complete, locally signed **legacy type-0 transaction**, not a message signature or unsigned calldata. The service queues/broadcasts it after the parent executes. HTTP `code=0` proves acceptance only; verify the derived transaction hash, receipt and OrderBook events. Never print the signed bytes or retry automatically after a timeout.
+
+The helper submits `OrderBook.batchCreateDecreaseOrder` for the signing wallet after its market-open request has completed:
+
+```bash
+DERIW_NETWORK=dev node scripts/submit-tpsl.js 0xPARENT_HASH orders.json
+# After the concrete orders are authorized, supply the local signer and append --send.
+```
+
+`orders.json` is a nonempty array such as `[{"token":"0xTOKEN","size":"100","isLong":true,"triggerPrice":"100000","triggerAbove":true,"collateral":"0"}]`. Size, price and collateral are decimal USD strings; booleans are JSON booleans. Choose real prices and token addresses for the intended position. Nonzero collateral requests a collateral withdrawal. TP and SL orders are independent; do not assume OCO cancellation. Avoid concurrent sends from this wallet while the relayed nonce is pending. If the API fails or times out, retain the printed transaction hash and check its receipt and nonce before another submission.
+
 ## Fund and Meme pool discovery
 
 | GET path | Fields |
@@ -107,7 +120,7 @@ GET `/client/edge_hour/<name>`:
 | positions / close_records | account, challenge_id; optional page_index/page_size |
 | user/overview / user/challenges | account; pagination for challenges |
 | user/challenge/detail | account, challenge_id |
-| challenge_detail | challenge_id |
+| challenge_detail | account, challenge_id |
 | liquidate_price | challenge_id, index_token, is_long, size_delta, collateral; amounts in raw 6-decimal units |
 
 Template data includes template_id, max_ticket_price, duration, tokens, leverages, minimum_holding_period, minimum_trades, r_target and dd_max. API values have endpoint-specific display conventions; inspect [edge-hour.md](edge-hour.md). Challenge records use the contract’s 0=None, 1=Active, 2=Passed, 3=Failed, 4=Claimed enum. Position/closed-trade status fields have different meanings. `liquidate_price` returns a raw 18-decimal price string.
@@ -122,5 +135,6 @@ User-facing signed mutations (not supported by the read-only CLI; use an explici
 
 - POST `/client/invite_return/v2/apply_agent`: account, username (≤20 chars), country (≤20), nonempty unique platforms, nonempty profiles (`link`, `follower_count`), optional image_ids, plan_to_promote_dw, joined_similar_affiliate_name, and signature. Sign exactly `Apply to become affiliate` with EIP-191.
 - POST `/client/invite_return/v2/set_return_rate`: account (parent), return_rate (0..10000), signature, optional invitee. Sign exactly `Confirm the rebate ratio` with EIP-191. The server validates referral hierarchy; signing does not grant authority over unrelated accounts.
+- POST `/client/supernovaplus/create_relationship`: for signed DER+ referral binding, use `{type:2,invitee_address,invitation_code,sign}`. Sign exactly `I agree to use this code <invitation_code> as my DER+ Point referrer` with EIP-191, substituting the chosen code. This requires an active campaign and a valid user-chosen referrer. It is separate from the on-chain trading referral code. Do not fabricate a referrer or treat type 1 (generate an invitation link) as a read.
 
 Signatures for these fixed texts do not bind every HTTP field. Do not log or reuse them for a new action, and show the intended fields before signing. If the task is a query, never submit any of these writes.

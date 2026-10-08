@@ -69,7 +69,7 @@ node scripts/contract-call.js PositionRouter cancelIncreasePosition '["0xREQUEST
 node scripts/contract-call.js PositionRouter cancelDecreasePosition '["0xREQUEST_KEY"]' [--send]
 ```
 
-Cancellation is for the caller's request and may be subject to contract delay. Never call `execute*` or impersonate a keeper.
+Cancellation is for the caller's request and may be subject to contract delay. A successful receipt with `IncreasePositionNotExist` or `DecreasePositionNotExist` only proves the request was already consumed; it does not prove a pending request was cancelled or refunded. Never call `execute*` or impersonate a keeper.
 
 ## Limit orders and TP/SL
 
@@ -82,7 +82,7 @@ node scripts/create-limit-close.js <token> <sizeUSD> <true|false> <triggerUSD> <
 
 `createIncreaseOrder(path,amountIn,indexToken,sizeDelta,collateralToken,isLong,triggerPrice,triggerAboveThreshold,lever)` uses 6-decimal margin, 30-decimal size/trigger, and leverage scaled by 10000. The helper calculates leverage with integers. `createDecreaseOrder(indexToken,sizeDelta,collateralToken,collateralDelta,isLong,triggerPrice,triggerAboveThreshold,lever)` uses 30-decimal amounts and `lever=10000` for its close convention.
 
-Order indices are distinct from request keys. Fetch `/client/order/indices?address=...` and verify chain data before cancellation:
+Order indices are distinct from request keys. Retain indices from `CreateIncreaseOrder`/`CreateDecreaseOrder` receipt events. Fetch `/client/order/indices?address=...` and verify `increaseOrders(account,index)`/`decreaseOrders(account,index)` before cancellation. An empty API list is not proof that a known chain order has executed or disappeared:
 
 ```bash
 node scripts/contract-call.js OrderBook cancelIncreaseOrder '["0"]' [--send]
@@ -90,7 +90,7 @@ node scripts/contract-call.js OrderBook cancelDecreaseOrder '["0"]' [--send]
 node scripts/contract-call.js OrderBook cancelMultiple '[["0"],["1"]]' [--send]
 ```
 
-`batchCreateDecreaseOrder(tuple[])` is supported with the same decrease-order tuple fields. Do not call `cancel*For`, batch account cancellation or `execute*`; those require service roles. A trigger order creation receipt does not mean it has executed.
+`batchCreateDecreaseOrder(tuple[])` is supported with the same decrease-order tuple fields. For the client API relay, use [the signed TP/SL workflow](api.md#submit-signed-tpsl-orders). Do not call `cancel*For`, batch account cancellation or `execute*`; those require service roles. A trigger order creation receipt does not mean it has executed.
 
 ## Fund Pool V2
 
