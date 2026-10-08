@@ -145,7 +145,7 @@ const readRoutes = new Set([
 ]);
 async function api(config, method, route, params = {}) {
   const allowed = method === 'GET' ? readRoutes.has(route)
-    : method === 'POST' && ['/client/position_router/tx_status', '/client/room/pre-create'].includes(route);
+    : method === 'POST' && ['/client/position_router/tx_status', '/client/room/pre-create', '/client/order/tpsl'].includes(route);
   if (!allowed) throw new Error('Route/method is outside the reviewed client API surface');
   const url = new URL(route, config.apiBase);
   if (method === 'GET') for (const [k, v] of Object.entries(params)) {
@@ -154,8 +154,10 @@ async function api(config, method, route, params = {}) {
   const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(15000),
     headers: { 'Content-Type': 'application/json' },
     ...(method === 'POST' ? { body: JSON.stringify(params) } : {}) });
-  if (!response.ok) throw new Error(`HTTP ${response.status} for ${route}`);
-  const json = await response.json();
+  let json;
+  try { json = await response.json(); }
+  catch { throw new Error(`HTTP ${response.status} with non-JSON response for ${route}`); }
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${route}, code=${json.code ?? 'unknown'}, msg=${json.msg || ''}`);
   if (json.code !== 0) throw new Error(`Client API code=${json.code}, msg=${json.msg || ''}`);
   return json;
 }

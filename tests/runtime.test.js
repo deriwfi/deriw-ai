@@ -101,6 +101,13 @@ test('read API preserves repeated query values and false, rejects application er
     assert.deepEqual((await R.api(R.network({}), 'GET', '/client/prices', { name: ['BTC', 'ETH'], is_long: false })).data, ['9007199254740993']);
     global.fetch = async () => ({ ok: true, json: async () => ({ code: 100438, msg: 'invalid input' }) });
     await assert.rejects(R.api(R.network({}), 'GET', '/client/coins'), /100438/);
+    global.fetch = async () => ({ ok: false, status: 500,
+      json: async () => ({ code: 100002, msg: 'Internal server error', reference: 'private server stack' }) });
+    await assert.rejects(R.api(R.network({}), 'GET', '/client/coins'), error => {
+      assert.match(error.message, /HTTP 500.*100002/);
+      assert.ok(!error.message.includes('private server stack'));
+      return true;
+    });
     await assert.rejects(R.api(R.network({}), 'GET', '/internal/inspector'), /outside/);
     await assert.rejects(R.api(R.network({}), 'GET', '/client/airdrop/log'), /outside/);
     await assert.rejects(R.api(R.network({}), 'POST', '/client/edge_hour/challenge/claim'), /outside/);

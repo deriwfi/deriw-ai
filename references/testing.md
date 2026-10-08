@@ -41,4 +41,21 @@ Signed transactions, real approvals, signed API writes, Edge Hour deployment val
 
 Checks include source chain ID, configured L3 bytecode, public coin/config/price/pool/Edge-template APIs and the current core oracle quote. They exclude the L2 deposit router and the pool identifier. Edge Hour contract addresses were not supplied and were not inferred from historical files. Nine offline tests also passed, covering network isolation, exact amounts, all slippage directions, quote freshness, ABI encoding/approval spender, restricted writes, client error handling and key-free previews.
 
-An independent end-user run from an isolated copy successfully queried dev markets and encoded a BTC short preview with 10 USDT margin, 100 USD size and 1% tolerance without a private key. The live fundraising pool list was empty during that check; a running pool's encoded deposit is not proof that a fundraising deposit is currently eligible. No signed case in the matrix above has been executed as part of this update.
+An independent end-user run from an isolated copy successfully queried dev markets and encoded a BTC short preview with 10 USDT margin, 100 USD size and 1% tolerance without a private key. The live fundraising pool list was empty during that check; a running pool's encoded deposit is not proof that a fundraising deposit is currently eligible. Those initial checks did not execute signed cases.
+
+## Subsequent authorized dev trading session (2026-10-08)
+
+The signed session used 100 USDT per opening order, 500 USD position size (5x) and 1% market tolerance. Peak concurrently locked test margin was 200 USDT. These are observations from that session, not defaults or authorization for another user.
+
+| Case | Observed outcome |
+|---|---|
+| Market long/short opening; long partial/full close; short full close | Passed: client completion status and resulting Vault positions matched |
+| Long/short limit creation; individual/batch cancellation | Passed: receipt events and full refund of the cancelled opening orders |
+| TP/SL single/batch creation and cancellation | Passed for long and short orders |
+| Signed `/client/order/tpsl` relay | Passed twice, including the packaged helper; API acceptance followed by on-chain creation |
+| Market request cancellation after execution | Both methods returned `*PositionNotExist`; idempotency passed, pending-request cancellation remains untested |
+| Limit order actual execution | Not confirmed: a created long order remained active on chain while the client indices list was empty and no position appeared; cancelled and refunded |
+| 24 selected client GET requests | 23 returned HTTP success and code 0; `/client/edge_hour/challenge/info` returned HTTP 500/code 100002 for the test account |
+| Approvals and other signed features | Not executed in this phase: existing Router allowance sufficed; pools, rooms, referrals, Edge Hour and bridges require their own session cases and prerequisites |
+
+Do not treat this as complete signed coverage or an all-green deployment. In particular, limit execution and the affected Edge Hour query need investigation. Preserve public transaction hashes and per-case evidence locally; never include private keys or signed transaction/message bytes in a test report.
