@@ -40,7 +40,7 @@ Convenience scripts read the allowance, reset nonzero insufficient allowance to 
 ## Market requests
 
 ```bash
-node scripts/create-market-open.js <indexToken> <marginUSDT> <sizeUSD> <true|false> [referralBytes32] [--send]
+node scripts/create-market-open.js <indexToken> <marginUSDT> <sizeUSD> <true|false> [--send]
 node scripts/create-market-close.js <indexToken> <sizeUSD> <true|false> [collateralToWithdrawUSD] [--send]
 ```
 
@@ -60,7 +60,7 @@ Methods (argument order):
 - `createIncreasePosition(path,indexToken,amountIn,sizeDelta,isLong,acceptablePrice,referralCode,callbackTarget)`
 - `createDecreasePosition(path,indexToken,collateralDelta,sizeDelta,isLong,receiver,acceptablePrice,callbackTarget)`
 
-Use `[USDT]` as path, 6 decimals for amountIn, 30 for size/collateral/acceptable price, zero callback, and zero referral hash if absent. Creation transfers/locks collateral and creates a request; it does not immediately establish the resulting position.
+Use `[USDT]` as path, 6 decimals for amountIn, 30 for size/collateral/acceptable price, and a zero callback. The deployed market-increase method still has a referral argument, but it accepts only the zero hash; a trading referral is bound separately with `referral-bind`. Creation transfers/locks collateral and creates a request; it does not immediately establish the resulting position. The receipt summary includes the request key or order index. A cancel that would return false, or whose request is already absent, is not broadcast. If the keeper consumes the request before the cancel is mined, the receipt is reported as a failure rather than a successful cancellation.
 
 The script performs one client status check after creation. For later checks use `POST /client/position_router/tx_status` with `{address,tx_hash,type}` (`type=0` increase, `1` decrease), then re-read the position. Missing indexing is pending/unknown. Cancellation uses the request **bytes32 key** from receipt events:
 
