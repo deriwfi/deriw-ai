@@ -8,13 +8,15 @@ Use [networks.json](networks.json) for addresses and `assets/<Contract>.json` fo
 node scripts/contract-call.js PriceOracle getMaxMinPriceWithTime '["0xTOKEN"]'
 node scripts/contract-call.js Vault getPosition '["0xUSER","0xUSDT","0xINDEX_TOKEN",true]'
 node scripts/query-position.js 0xUSER 0xINDEX_TOKEN true
-node scripts/token-state.js 0xUSER [0xTOKEN] [0xSPENDER]
+node scripts/token-state.js 0xUSER [0xTOKEN|USDT|DER] [0xSPENDER]
+node scripts/contract-call.js DER totalSupply '[]'
 node scripts/contract-call.js IERC20 decimals '[]' --at 0xTOKEN
 node scripts/contract-call.js PoolDataV2 getUserInfo '["0xUSER","0xPOOL","1"]'
 node scripts/contract-call.js MemeData getMemeUserInfo '["0xPOOL","0xUSER"]'
+node scripts/query-buyback.js [0xUSER]
 ```
 
-`token-state.js` reads native balance, token decimals/balance, and optionally allowance; its default token is the selected USDT. `contract-call.js` accepts view/pure methods on configured contracts. For a token or dynamically discovered pool, use its bundled ABI name with `--at 0xADDRESS`; address overrides are permitted for reads only. The RPC must have the selected chain ID and the target must have bytecode. A full ABI can also describe methods absent from a particular deployed version: a reverting read must be reported, never replaced with an assumed value.
+`token-state.js` reads native balance, token decimals/balance, and optionally allowance; its default token is the selected `USDT`, and configured ERC-20 names such as `DER` or `USDT` are also accepted. `contract-call.js` accepts view/pure methods on configured contracts (`USDT` and `DER` resolve to `IERC20`). For a token or dynamically discovered pool, use its bundled ABI name with `--at 0xADDRESS`; address overrides are permitted for reads only. The RPC must have the selected chain ID and the target must have bytecode. A full ABI can also describe methods absent from a particular deployed version: a reverting read must be reported, never replaced with an assumed value.
 
 Core `PriceOracle.getMaxMinPriceWithTime(token)` returns max/ask, min/bid and update time. Prices use 30 decimals. `getPrice(token)` returns a tuple (index token, ask, bid, mid), not a single scalar. Stored volatile-token prices do not expire automatically on read; market scripts check their age against the latest block (60 seconds by default, configurable with `DERIW_MAX_PRICE_AGE_SECONDS`). Stablecoin USDT is fixed at 1e30 with timestamp 0. Do not use it as an index token for a market order.
 
@@ -120,6 +122,34 @@ node scripts/contract-call.js MemeRouter claimAll '[]' [--send]
 ```
 
 Deposits use USDT (6 decimals). For `claim(pool,amount)`, first read `MemeData.getMemeState(pool).isStake`: if true, amount is raw GLP shares (18 decimals, bounded by user glpAmount); if false, amount is raw deposited USDT (6 decimals, bounded by user depositAmount). Inspect `getMemeUserInfo` before choosing it. `claimAll` selects these units internally across the caller’s pools. Do not call `MemePool.withdraw`: it is a data-layer-only method, not a user withdrawal API. `MemeFactory.createPool(token)` is only for an already whitelisted creator (`getWhitelistIsIn(account)`); do not add the user to a whitelist.
+
+## Buyback, trading mining, PnL caps, and liquidation buffer (public reads)
+
+These contracts expose public read-only state and events for decoding; **all** of their state-changing methods (`syncTier`, `setTiers`, `clearTiers`, `settleQueue`, `recordPnl`, `recordLiquidation`, `withdrawDer`, `setBufferConfig`, `setHardtopRate`, `batchSetOffHours`, etc.) are governance, keeper, recorder, or `VaultUtils`-only and are blocked from user writes in `contract-call.js`.
+
+```bash
+node scripts/query-buyback.js [0xUSER]
+node scripts/contract-call.js BuybackTransfer getH '["0xUSDT"]'
+node scripts/contract-call.js BuybackTransfer getCurrentTier '["0xUSDT"]'
+node scripts/contract-call.js BuybackTransfer getDivertRates '["0xUSDT"]'
+node scripts/contract-call.js BuybackTransfer getTiers '["0xUSDT"]'
+node scripts/contract-call.js BuybackTransfer splitLoss '["0xUSDT","1000000"]'
+node scripts/contract-call.js TradingMining getWaterLevelSnapshot '["0xUSDT"]'
+node scripts/contract-call.js TradingMining getQueueConfig '["0xUSDT"]'
+node scripts/contract-call.js TradingMining getQueueRecords '["0xUSDT","1","20"]'
+node scripts/contract-call.js TradingMining getMinHoldTime '["0xINDEX_TOKEN"]'
+node scripts/contract-call.js TradingMining previewClose '["0xINDEX_TOKEN","0xUSDT","0xUSER",true,"100000000000000000000000000000000"]'
+node scripts/contract-call.js CalculatePNL getRemainingLossCapacity '["0xUSDT"]'
+node scripts/contract-call.js CalculatePNL getPnlData '["0xINDEX_TOKEN","0xUSDT"]'
+node scripts/contract-call.js LiquidateBuffer getBufferConfigs '["0xUSDT"]'
+node scripts/contract-call.js LiquidateBuffer getLiquidationInfo '["0xUSER","0xUSDT","0xINDEX_TOKEN",true]'
+node scripts/contract-call.js StockMarket getIsOffHours '["0xINDEX_TOKEN"]'
+```
+
+- `BuybackTransfer`: `getH(token)` returns live `Vault.poolAmounts(targetToken, USDT)` (raw 6-decimal USDT). `getTiers(token)` returns hysteresis bands (`openThreshold`, `closeThreshold` in raw 6-decimal USDT; `buybackBps`, `insuranceBps`, `mainBps` summing to `10000`). `getCurrentTier(token)` returns 0 when inactive or the 1-based active band. `VaultUtils.buybackTransfer()` reports the currently wired contract, and `VaultUtils` emits `LossDiverted` when realised main-pool losses are diverted.
+- `TradingMining`: `getWaterLevelSnapshot(USDT)` returns `(lp, effectiveH, rate, zone)` where `lp`/`effectiveH` are raw 6-decimal USDT, `rate` is integer DER/USDT, and `zone` is `0=underwater`, `1=flat`, `2=ratchet`. `getQueueConfig(USDT)` returns `(openCount, totalOutstanding, totalQueued, totalPaid)` in raw 6-decimal USDT. `previewClose` estimates loss-mining payout (`miningEnabled` and `holdTimePassed` must both be true for a close to mint DER; `sizeDelta` uses 30 decimals). `getMinHoldTime(indexToken)` returns seconds.
+- `CalculatePNL`: `getHardtopRate(token)` uses `BASE_RATE=10000`; `getRemainingLossCapacity(token)` returns `(remainingUsd, hardtopUsd, usedUsd)` in 30-decimal USD. `Phase.calculatePNL()` reports the wired contract.
+- `LiquidateBuffer`: `getBufferConfigs(token)` lists per-leverage buffer entries (`bufferBps` over `10000`); `getLiquidationInfo` returns position leverage and maintenance margin thresholds (`marginRatioWad` in 18 decimals). Latest `VaultUtils` also exposes `LIQUIDATION_FEE_RATE_DIVISOR` (`1000000`, 6 decimals) where upgraded, and `Vault.maxLeverage()` remains the live leverage cap (the latest `Vault` ABI allows up to `MAX_LEVERAGE = 3000 * 10000`).
 
 ## Referral and host actions
 

@@ -83,7 +83,13 @@ test('market plans read the current oracle, encode bounded prices and reject sta
 test('public ABI does not enable keeper, admin, pool-data, or fund-manager writes', () => {
   for (const [name, method] of [['PositionRouter', 'executeIncreasePosition'], ['OrderBook', 'cancelMultipleFor'],
     ['PriceOracle', 'batchSetPrices'], ['MemeFactory', 'setChannelPoolIsPause'],
-    ['FundRouterV2', 'compoundToNext'], ['PoolDataV2', 'deposit'], ['MemePool', 'withdraw']]) {
+    ['FundRouterV2', 'compoundToNext'], ['PoolDataV2', 'deposit'], ['MemePool', 'withdraw'],
+    ['BuybackTransfer', 'syncTier'], ['BuybackTransfer', 'setTiers'], ['BuybackTransfer', 'clearTiers'],
+    ['TradingMining', 'settleQueue'], ['TradingMining', 'recordPnl'], ['TradingMining', 'withdrawDer'], ['TradingMining', 'setMiningEnabled'],
+    ['LiquidateBuffer', 'setBufferConfig'], ['LiquidateBuffer', 'clearBufferConfig'],
+    ['CalculatePNL', 'setHardtopRate'], ['CalculatePNL', 'recordActualLoss'],
+    ['StockMarket', 'batchSetOffHours'], ['StockMarket', 'batchSetPriceOpen'],
+    ['USDT', 'transfer'], ['DER', 'approve']]) {
     assert.equal(isUserWrite(name, method), false);
   }
   assert.equal(isUserWrite('OrderBook', 'cancelIncreaseOrder'), true);
@@ -91,6 +97,31 @@ test('public ABI does not enable keeper, admin, pool-data, or fund-manager write
     const iface = new R.ethers.Interface(R.abi(name));
     for (const method of methods) assert.ok(iface.getFunction(method));
   }
+});
+test('new and updated contract ABIs and ERC-20 aliases load expected read interfaces', () => {
+  for (const [name, methods] of [
+    ['BuybackTransfer', ['getH', 'getTiers', 'getCurrentTier', 'getDivertRates', 'splitLoss', 'buybackPool', 'insuranceFund', 'mainPool']],
+    ['TradingMining', ['miningEnabled', 'derToken', 'getWaterLevelSnapshot', 'getQueueConfig', 'getQueueRecords', 'getMinHoldTime', 'getLastIncreaseTime', 'previewClose']],
+    ['LiquidateBuffer', ['getBufferCount', 'getBufferConfigs', 'getLiquidationInfo', 'isForcedLiquidation']],
+    ['CalculatePNL', ['getHardtopRate', 'getRemainingLossCapacity', 'getPnlData', 'getDelta']],
+    ['StockMarket', ['getIsStockMarketToken', 'getIsOffHours', 'getPositionInOffHours', 'getSettlementFee']],
+    ['VaultUtils', ['buybackTransfer', 'tradingMining', 'liquidateBuffer', 'LIQUIDATION_FEE_RATE_DIVISOR', 'getTargetIndexToken', 'poolAmounts']],
+    ['Phase', ['calculatePNL', 'getIndexTokenLongShortValue']],
+    ['PoolDataV2', ['isOpen']],
+    ['SlippageControl', ['isSetFinalslipcap', 'indexTokenTofinalSlipCap']],
+    ['UserL2ToL3Router', ['outboundTransfer', 'l2Usdt', 'chainType', 'maxFeeValue']],
+    ['UserL3ToL2Router', ['outboundTransfer', 'l3Usdt', 'chainid', 'getValue', 'hashData']],
+    ['USDT', ['balanceOf', 'allowance', 'decimals']],
+    ['DER', ['balanceOf', 'totalSupply', 'decimals']],
+  ]) {
+    const iface = new R.ethers.Interface(R.abi(name));
+    for (const method of methods) assert.ok(iface.getFunction(method), `${name}.${method} missing`);
+  }
+  const vaultIface = new R.ethers.Interface(R.abi('Vault'));
+  assert.ok(vaultIface.getFunction('transferOutFor'));
+  assert.equal(vaultIface.getFunction('getCoinType'), null);
+  const vuIface = new R.ethers.Interface(R.abi('VaultUtils'));
+  assert.ok(vuIface.getEvent('LossDiverted'));
 });
 test('read API preserves repeated query values and false, rejects application errors and unsafe routes', async () => {
   const original = global.fetch;
@@ -101,6 +132,17 @@ test('read API preserves repeated query values and false, rejects application er
       return { ok: true, json: async () => ({ code: 0, data: ['9007199254740993'] }) };
     };
     assert.deepEqual((await R.api(R.network({}), 'GET', '/client/prices', { name: ['BTC', 'ETH'], is_long: false })).data, ['9007199254740993']);
+    global.fetch = async url => ({ ok: true, json: async () => ({ code: 0, data: { path: url.pathname } }) });
+    for (const route of [
+      '/client/buyback/overview', '/client/statistics/overview',
+      '/client/trading_mining/mint_records', '/client/trading_mining/queue_records',
+      '/client/candles/mark', '/client/price_history', '/client/coin_market/candles',
+      '/client/calendar/status', '/client/calendar/month', '/client/calendar/day', '/client/calendar/symbols',
+      '/client/ip_limit',
+    ]) {
+      assert.equal((await R.api(R.network({}), 'GET', route)).data.path, route);
+      await assert.rejects(R.api(R.network({}), 'POST', route), /outside/);
+    }
     global.fetch = async () => ({ ok: true, json: async () => ({ code: 100438, msg: 'invalid input' }) });
     await assert.rejects(R.api(R.network({}), 'GET', '/client/coins'), /100438/);
     global.fetch = async () => ({ ok: false, status: 500,

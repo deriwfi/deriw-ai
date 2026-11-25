@@ -296,77 +296,6 @@
     "anonymous": false,
     "inputs": [
       {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "cType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "typeKey",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "key",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "address",
-            "name": "from",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "to",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "amount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "beforeAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "afterAmount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "beforeValue",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "afterValue",
-            "type": "uint256"
-          }
-        ],
-        "indexed": false,
-        "internalType": "struct IEventStruct.DecreaseEventFor",
-        "name": "dt",
-        "type": "tuple"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "collateralValue",
-        "type": "uint256"
-      }
-    ],
-    "name": "DecreasePositionEvent",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
         "indexed": false,
         "internalType": "address",
         "name": "_indexToken",
@@ -621,61 +550,6 @@
       }
     ],
     "name": "LiquidatePosition",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "key",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "beforeAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "afterAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "beforeValue",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "afterValue",
-        "type": "uint256"
-      }
-    ],
-    "name": "LiquidatePositionEvent",
     "type": "event"
   },
   {
@@ -1274,25 +1148,6 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_indexToken",
-        "type": "address"
-      }
-    ],
-    "name": "getCoinType",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "",
-        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -2397,7 +2252,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_priceFeed",
+        "name": "",
         "type": "address"
       }
     ],
@@ -2651,6 +2506,34 @@
       }
     ],
     "name": "transferOut",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_collateralToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "transferOutFor",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

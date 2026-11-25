@@ -14,13 +14,17 @@ Select `DERIW_NETWORK=dev|test|mainnet`. Contract addresses are configured in [n
 
 | Contract | Dev | Test | Mainnet |
 |---|---|---|---|
-| Airdrop | — | `0xb207FD6D1136b0a32E2077754C971A82C7E54545` | — |
+| Airdrop | `0x6B86549A7dd94EEA6AB53a79596C25c7AC380725` | `0xb207FD6D1136b0a32E2077754C971A82C7E54545` | — |
+| BuybackTransfer | `0xF53d119eB4fCD0B0Ca9b655C2e582f870210fB75` | `0x0BEC6244c91744E44e483de492a2560D32Ab32BA` | `0xA0473802c04495c0e02e29ad44F9490B3F147f99` |
+| CalculatePNL | `0xbbb532E769d2e136a2Ea45CbB6E81DC49BA45c43` | `0xBC3ebC93e37cd086D13D3322908E35b38A2DB1d3` | `0x5807eFeF190D40DDb973A41B9C30223994463a7f` |
 | CoinData | `0xC75DC20185d2aB64d5faBF227285AB171D50D825` | `0xba08A22d7fa72723793bF981BBC13B86FaA0f78d` | `0xAb9Ded668e6F7167DA4D3529cC8463AA88d6454f` |
+| DER | `0x79E765D3Bd1351D611523f77379b146562861EBD` | `0xCA2fd5a98e360a3Cd01241f9F782350B9A387E01` | `0xaDc38C5dad32C53d35D2eF4D0E97767d27C062dD` |
 | DataReader | `0x0628DA40f5B63Aa33e9Ce4D73323F3F6708DaF8F` | `0x1Dc8D3172df161ef7510d636B6300d89D6e886A4` | `0x934B75A4f576738c1392a2af1BF8be1FBf52b53d` |
 | FundFactoryV2 | `0xe3b1410e7712d8205c428ae4F1E1609618fD0aA4` | `0x5d22cFEa6d6f4f2651242b8616B0BB74375e47fe` | `0x9b0449B664C3b78C71D7647570F2c6D62ca7ADd1` |
 | FundReader | `0x4915e36296175975764c2c85cE73DA578da492b5` | `0xF0C8034BD19e6942e251b1582f1855CEBC6292Fc` | `0x4D778dE09f5C043677bd18888114A9a0911dCE96` |
 | FundRouterV2 | `0x324D847bc335032855972DA8d2f825BF7df14dCD` | `0xDc9Bbc243d2A0f185B00401515f7FE43be6BD997` | `0x3D343Fc0F6c6D2E047ec5e16e39A9b6A2031B9Ac` |
 | GLP | `0x91A74B8bf30dfe0DB611800927Dee13E28808218` | `0xE6071653F3100d2d453b51bFf34E1f0cdcC19129` | `0x9E06Fe81dCad8cdc624C4B5fb126Aeed0449CFc9` |
+| LiquidateBuffer | `0xe55076581b0B5a27cE4d5D5b60Ce08579e1aa485` | `0x838c5c8c9b70b0Ad9F831De5e43188cf3AB255a2` | `0x8f020701AE1a7cb1632E69aE9a3DC3739F8B39b7` |
 | LpToken | `0xCaf5c59286Cd3B38db3d9Be1d2e47538D44Ed060` | `0xF10ef3b92a8390E86f84A7F3a99ca65e04eB97DF` | `0x62c723Dfd86C07BA8a00B8d70A95fF772De0A26C` |
 | MemeData | `0xa4E451aE6C7e80E5587949CB557BeB700f0500A1` | `0x64356664a4946Ef37d20CBc955C19b0FB0b0751e` | `0xA4DE9E445C06A0d091a3cdA0661C7B5a5A1fAec8` |
 | MemeFactory | `0x4C74F6e60736130247c8b53807b627FeD558cA77` | `0xAe5400eebD772D58366DB73b3f90dB4469Aca79A` | `0x363d1d8a71A5e1E6F6528432A59541bb2848B07e` |
@@ -37,6 +41,8 @@ Select `DERIW_NETWORK=dev|test|mainnet`. Contract addresses are configured in [n
 | Router | `0x23D9D11717a5CC9A90A7982445452e225060B511` | `0x871cC36e0C52d3e41f896FF9D4eE03BC81E452e4` | `0x1eB6Dfc3316012C5795E1060f8BD1CEa10df30F5` |
 | Slippage | `0x3600Cc37027146d0E9cf0E146D21390CFF474d75` | `0x70292ECf85074c09a76Cbe9B1800a6adB9c25f95` | `0xAd3FAe555Ab3571a2886012DfFcc7C777eC11e7E` |
 | SlippageControl | `0x259Ed1aaf4C6C49581B1cbdFeF041d8C1b2159b9` | `0xaCF12CbA5457596fDb668FE46529a22733EFE360` | `0x86f2C1c55Aa2A741896ba55B97cb1745558864aF` |
+| StockMarket | `0xe6f230F8Eb795ADde712F61c203716edF379757C` | — | — |
+| TradingMining | `0x614fbfDF252835947Beb62F2935Ea5c9DB1ef414` | `0xe670c9DDa9D14D18E692230b1d68546c2F5ADdf2` | `0x7c075C8fD9042a493C0a0F3897f9469524654aA9` |
 | USDT | `0x12530882c64B1c22dAdf2F60639145029c5081Da` | `0x8059298AD3f2153EC1B0FA0d233342e834E06737` | `0x3B11A54514A708CC2261f4B69617910E172a90B3` |
 | UserL2ToL3Router | `0x81A88de21De37A025660D746164A9AB013822263` | `0x53D85Ac7cDaaca35942FB2C41c9dAb2302a66CB9` | `0xaE7203eBA7E570A6B5C7A303987B6C824dF5A325` |
 | UserL3ToL2Router | `0x32068069f13191B57c03Eee8531a8C82b26d12B9` | `0x675a17efd9E9Ce8b7a769Fb3DF88f9c102190DE0` | `0x8fb358679749FD952Ea5f090b0eA3675722B08F5` |
@@ -50,8 +56,10 @@ Select `DERIW_NETWORK=dev|test|mainnet`. Contract addresses are configured in [n
 
 ## ABI and token selection
 
-Core ABIs are in `assets/`; Edge Hour ABIs are in `assets/edge_hour/`. Room operations use the core ABI files. ABI exports include events and errors for decoding. User writes are limited to the documented workflows.
+Core ABIs (including `BuybackTransfer`, `TradingMining`, `LiquidateBuffer`, `CalculatePNL`, and `StockMarket`) are in `assets/`; Edge Hour ABIs are in `assets/edge_hour/`. Room operations use the core ABI files. ABI exports include events and errors for decoding. User writes are limited to the documented workflows.
 
-Discover market token addresses from `/client/coins` and `/client/coin_infos` on the selected network. Use the actual position token for existing room positions. `USDT` is the collateral token and `pool` identifies the main fund pool. Core prices use 30 decimals; Edge Hour oracle prices use 18.
+Discover market token addresses from `/client/coins` and `/client/coin_infos` on the selected network. Use the actual position token for existing room positions. `USDT` (6 decimals) is the collateral token, `DER` (18 decimals) is the protocol token minted by `TradingMining`, and `pool` identifies the main fund pool. Core prices use 30 decimals; Edge Hour oracle prices use 18. `USDT` and `DER` resolve to `IERC20` in `contract-call.js` and `token-state.js`.
+
+On `dev`, `LiquidateBuffer` is deployed at the listed address while `VaultUtils.liquidateBuffer()` may still be zero until wired; on `test` and `mainnet`, `BuybackTransfer`, `TradingMining`, `LiquidateBuffer`, and `CalculatePNL` are all live and wired through `VaultUtils` / `Phase`.
 
 Edge Hour environment overrides are `DERIW_EDGE_CHALLENGE_MANAGER`, `DERIW_EDGE_LP_VAULT` and `DERIW_EDGE_PRICE_ORACLE`. Bridge source overrides are `DERIW_L2_RPC_URL` and `DERIW_L2_CHAIN_ID`. See [bridge.md](bridge.md) for source/destination validation.

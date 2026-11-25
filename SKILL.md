@@ -16,8 +16,8 @@ Run commands from the installed skill folder with Node.js 18+ and the bundled `p
 | Task | Read when needed |
 |---|---|
 | Networks and contract addresses | [references/addresses.md](references/addresses.md) |
-| Markets, prices, history, user portfolio, API status | [references/api.md](references/api.md) |
-| Positions, market/limit orders, approvals, pool operations | [references/contracts.md](references/contracts.md) |
+| Markets, prices, history, buyback, statistics, trading mining, portfolio, API status | [references/api.md](references/api.md) |
+| Positions, market/limit orders, approvals, buyback/mining reads, pool operations | [references/contracts.md](references/contracts.md) |
 | Room application, host creation/reopening, liquidity | [references/room.md](references/room.md) |
 | Edge Hour challenges and LP vault | [references/edge-hour.md](references/edge-hour.md) |
 | L2 deposit or L3 withdrawal | [references/bridge.md](references/bridge.md) |
@@ -41,6 +41,7 @@ Run commands from the installed skill folder with Node.js 18+ and the bundled `p
 
 ```bash
 DERIW_NETWORK=dev node scripts/api-query.js /client/coins
+DERIW_NETWORK=dev node scripts/query-buyback.js
 DERIW_NETWORK=dev node scripts/contract-call.js PriceOracle getMaxMinPriceWithTime '["0xTOKEN"]'
 DERIW_NETWORK=dev node scripts/query-position.js 0xACCOUNT 0xTOKEN true
 DERIW_NETWORK=dev DERIW_SLIPPAGE_BPS=100 node scripts/create-market-open.js 0xTOKEN 10 100 true

@@ -3,7 +3,9 @@ const R = require('./lib/runtime');
 async function main() {
   const [accountArg, tokenArg, spenderArg] = process.argv.slice(2);
   const account = R.address(accountArg), config = R.network();
-  const token = tokenArg ? R.address(tokenArg) : R.contractAddress(config, 'USDT');
+  const token = tokenArg
+    ? (config.contracts[tokenArg] ? R.contractAddress(config, tokenArg) : R.address(tokenArg))
+    : R.contractAddress(config, 'USDT');
   const spender = spenderArg ? R.address(spenderArg) : null;
   const provider = await R.providerFor(config);
   try {

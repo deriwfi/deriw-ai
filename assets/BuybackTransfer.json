@@ -1,0 +1,927 @@
+[
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "coinData",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "dataReader",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "vault",
+        "type": "address"
+      }
+    ],
+    "name": "ContractsSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldTier",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newTier",
+        "type": "uint256"
+      }
+    ],
+    "name": "CurrentTierUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "gov",
+        "type": "address"
+      }
+    ],
+    "name": "GovSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "coinType",
+        "type": "uint8"
+      }
+    ],
+    "name": "NonMainPoolSkipped",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "buybackPool",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "insuranceFund",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "mainPool",
+        "type": "address"
+      }
+    ],
+    "name": "PoolsSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "openThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "closeThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainBps",
+            "type": "uint256"
+          }
+        ],
+        "indexed": false,
+        "internalType": "struct BuybackTransfer.DivertTier",
+        "name": "tier",
+        "type": "tuple"
+      }
+    ],
+    "name": "TierSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "count",
+        "type": "uint256"
+      }
+    ],
+    "name": "TiersBatchSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "TiersCleared",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "BASIS_POINTS_DIVISOR",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_TIERS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_FIRST_CLOSE_THRESHOLD",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_FIRST_OPEN_THRESHOLD",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "buybackPool",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "clearTiers",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "coinData",
+    "outputs": [
+      {
+        "internalType": "contract ICoinData",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "currentTier",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "dataReader",
+    "outputs": [
+      {
+        "internalType": "contract IDataReader",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getCurrentTier",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getDivertRates",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tier",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "buybackBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "insuranceBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "mainBps",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getH",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getTier",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "openThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "closeThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainBps",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BuybackTransfer.DivertTier",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getTierCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getTiers",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "openThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "closeThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainBps",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BuybackTransfer.DivertTier[]",
+        "name": "list",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gov",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "implementation",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_buybackPool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_insuranceFund",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_mainPool",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "initialized",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "insuranceFund",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "mainPool",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "oldImplementation",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_coinData",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_dataReader",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_vault",
+        "type": "address"
+      }
+    ],
+    "name": "setContracts",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_gov",
+        "type": "address"
+      }
+    ],
+    "name": "setGov",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_buybackPool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_insuranceFund",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_mainPool",
+        "type": "address"
+      }
+    ],
+    "name": "setPools",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "openThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "closeThreshold",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceBps",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainBps",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BuybackTransfer.DivertTier[]",
+        "name": "_tiers",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "setTiers",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "splitLoss",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "buybackReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "insuranceReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "mainReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainAmount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BuybackTransfer.LossSplit",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "syncTier",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "buybackReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "buybackAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "insuranceReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "insuranceAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "mainReceiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "mainAmount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BuybackTransfer.LossSplit",
+        "name": "lossSplit",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tierCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tiers",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "openThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "closeThreshold",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "buybackBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "insuranceBps",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "mainBps",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "vault",
+    "outputs": [
+      {
+        "internalType": "contract IVault",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

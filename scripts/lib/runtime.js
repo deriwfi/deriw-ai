@@ -31,9 +31,11 @@ function bool(value) {
   if (value !== 'true' && value !== 'false') throw new Error('Boolean must be true or false');
   return value === 'true';
 }
+const abiAliases = { USDT: 'IERC20', DER: 'IERC20' };
 function abi(name) {
-  if (!/^[A-Za-z0-9_/-]+$/.test(name)) throw new Error('Invalid ABI name');
-  const data = require(path.join(__dirname, '../../assets', `${name}.json`));
+  const resolved = abiAliases[name] || name;
+  if (!/^[A-Za-z0-9_/-]+$/.test(resolved)) throw new Error('Invalid ABI name');
+  const data = require(path.join(__dirname, '../../assets', `${resolved}.json`));
   return data.abi || data;
 }
 function contractAddress(config, name) {
@@ -183,9 +185,14 @@ async function executePlan(config, provider, plan, send) {
 }
 // Only explicitly reviewed read routes. Some other GET routes mutate state.
 const readRoutes = new Set([
-  '/client/candles', '/client/coins', '/client/prices', '/client/coin_infos', '/client/coin_intro',
-  '/client/coin_market/info', '/client/order/indices', '/client/order/total_sizedelta',
+  '/client/candles', '/client/candles/mark', '/client/price_history',
+  '/client/coins', '/client/prices', '/client/coin_infos', '/client/coin_intro', '/client/ip_limit',
+  '/client/coin_market/info', '/client/coin_market/candles',
+  ...['status', 'month', 'day', 'symbols'].map(x => `/client/calendar/${x}`),
+  '/client/order/indices', '/client/order/total_sizedelta',
   '/client/vault/decrease_records', '/client/vault/total_fees', '/client/vault/position_tokens',
+  '/client/buyback/overview', '/client/statistics/overview',
+  ...['mint_records', 'queue_records'].map(x => `/client/trading_mining/${x}`),
   '/client/account_position/sort', '/client/account/info', '/client/transaction/status',
   ...['summary', 'pnl_series', 'funding_history', 'transactions', 'chain_transfers'].map(x => `/client/portfolio/${x}`),
   ...['tokens', 'terms', 'lists', 'deposit', 'total'].map(x => `/client/foundpool/${x}`),

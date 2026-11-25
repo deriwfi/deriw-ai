@@ -21,8 +21,17 @@ The helper uses GET except for the read-only status query, which uses POST. Arra
 | GET `/client/prices` | optional repeated `address`, repeated `name`; each at most 25 | Array of address, min_price, max_price, pool_amount |
 | GET `/client/coin_infos` | optional `address` = user wallet for room funding rates | `list`: address, decimals, is_stable, is_shortable, fee_rate, max_leverage, contract_max_leverage, leverage_slider, status, market_state_policy, funding_fee_rate, room_pool_funding_fee_rate, next_funding_time |
 | GET `/client/candles` | required `symbol`, `period`, `limit` | symbol, period, is_meme, `prices:[{o,h,l,c,t}]`; `t` Unix seconds |
+| GET `/client/candles/mark` | required `account`, `index_token`; optional `from`, `page_index`, `page_size` (≤1000) | User kline trade/position markers (`tx_price`, `time`, open/close/liquidation status) |
+| GET `/client/price_history` | (`symbol` or `coin_id` or `address`), `interval_ms` (`250|1000|60000`), shard-aligned `from_ms`, `to_ms` | Tick-sharded display price history (`time_offsets_ms`, `columns.price`, `gap_indices`, `coverage`); availability depends on deployment |
 | GET `/client/coin_market/info` | optional sort_by, order, repeated addresses | Market totals and token list |
+| GET `/client/coin_market/candles` | none | Full-market candle snapshots per token |
+| GET `/client/calendar/status` | required `symbol` | TradFi market session state (`market_code`, `market_state`, `market_state_policy`, `next_state`, `next_change_at`, `countdown_seconds`, `progress`) |
+| GET `/client/calendar/month` | required `market_code`, `year`, `month` | Monthly TradFi trading/holiday calendar |
+| GET `/client/calendar/day` | required `market_code`, `date` | Single-day TradFi schedule (`day_type`, holiday/early-close flags) |
+| GET `/client/calendar/symbols` | required `market_code` | TradFi symbols belonging to that market |
+| GET `/client/ip_limit` | none | Geo-IP restriction status (`type`, `restrict_coin_list`) |
 | GET `/client/account/info` | required `address` | position_value, pending_order_book_value, sum_account_value |
+| GET `/client/account_position/sort` | required `address` | Sorted open positions with `sort_time`, `adl_risk_level`, `funding_fee` (display USDT), `open_time` (Unix seconds, matches `TradingMining.getLastIncreaseTime`), `min_hold_time` (seconds, matches `TradingMining.getMinHoldTime`) |
 | GET `/client/vault/position_tokens` | required `account` | Actual position index tokens; retain room mappings |
 | GET `/client/vault/decrease_records` | required address; optional is_long (1=long, 2=short), page_index, page_size | Closed-position records |
 | GET `/client/vault/total_fees` | required address; optional page_index, page_size | Fee records |
@@ -31,7 +40,20 @@ The helper uses GET except for the read-only status query, which uses POST. Arra
 
 Prices in market HTTP responses are display decimal USD strings, unlike 30-decimal ABI prices. `pool_amount` can be a raw token amount: do not apply the display-price conversion to every field. Status is 1=delisted, 2=listed, 3=pending delisting. `market_state_policy` is 0=closed, 1=reduce-only, 2=normal; check this before increasing exposure. Contract simulation remains authoritative for execution eligibility. `next_funding_time` is a Unix timestamp, not a countdown. Do not derive fee percentages from an assumed denominator shared by all contracts.
 
-For candle periods and symbols, use the values supported by the selected deployment; a typical request is `symbol=BTC&period=1h&limit=100`. Large candle limits or unsupported periods can be rejected.
+For candle periods and symbols, use the values supported by the selected deployment; a typical request is `symbol=BTC&period=1h&limit=100`. Large candle limits or unsupported periods can be rejected. For `/client/price_history`, shard lengths are 60s (`250ms`), 15m (`1000ms`), and 6h (`60000ms`), with `from_ms` aligned to a shard boundary and `to_ms - from_ms` equal to one shard.
+
+## Buyback, platform statistics, and trading mining
+
+All endpoints below are public read-only GET routes. Pay close attention to per-endpoint units: buyback and trading-mining record endpoints return display decimal strings, while `/client/statistics/overview` preserves raw on-chain integer precisions for pool and DER totals.
+
+| GET path | Request fields | Relevant response data and units |
+|---|---|---|
+| `/client/buyback/overview` | none | `status` (`not_started` or `accumulating`), `pool_amount`, `buyback_pool_balance`, `loss_diverted_amount` (all display USDT decimal strings), `divert_rate` (decimal ratio, e.g. `0.3` = 30%, `0.8` = 80%), `tiers:[{tier,open_threshold,close_threshold,divert_rate}]` |
+| `/client/statistics/overview` | none | `total_deposit_amount`, `room_pool_size`, `total_pool_size` (raw 6-decimal USDT strings), `der_minted_amount` (raw 18-decimal DER string), `der_holder_count` (nullable int), `der_mint_rate` (integer DER/USDT string; `0` if mining disabled or unavailable), `volume_24h` (display USD string, up to 4 decimals) |
+| `/client/trading_mining/mint_records` | required `account`; optional `is_liquidation` (`true|false`), `start_time`, `end_time`, `page_index`, `page_size` (≤100) | Paginated DER loss-mining records: `id`, `mint_time`, `pair`, `index_token`, `collateral_token`, `is_long`, `is_liquidation`, `loss_amount` / `realised_loss` (display USDT), `mint_rate` (DER/USDT), `minted_der` / `shortfall_der` (display DER), `zone` (0=underwater, 1=flat, 2=ratchet), `tx_hash` |
+| `/client/trading_mining/queue_records` | required `account`; optional `status` (`1`=pending, `2`=partial, `3`=cleared), `start_time`, `end_time`, `page_index`, `page_size` (≤100) | Top-level summary (`total_profit`, `paid_amount`, `unpaid_amount` display USDT) and paginated `list`: `queue_id`, `queue_position`, `pair`, `index_token`, `collateral_token`, `is_long`, `realized_pnl`, `original_debt`, `queue_amount`, `paid_amount`, `remaining_amount` (display USDT), `status` (1/2/3), `enqueued_time`, `repaid_time`, `tx_hash`, `enqueued_tx_hash`, `repaid_tx_hash` |
+
+Use `node scripts/query-buyback.js [0xACCOUNT]` for a combined read-only snapshot of `/client/buyback/overview`, `/client/statistics/overview`, `/client/foundpool/total`, optional account mining/queue records, and on-chain `BuybackTransfer` / `TradingMining` / `CalculatePNL` / `LiquidateBuffer` state.
 
 ## Portfolio
 
@@ -86,7 +108,7 @@ DERIW_NETWORK=dev node scripts/submit-tpsl.js 0xPARENT_HASH orders.json
 | `/client/memepool/deposit` | required user |
 | `/client/memepool/total` | none |
 
-Fund list entries include pool, p_id, token_address, name, start_time, end_time, lock_end_time, min_deposit_amount, fundraising_amount, deposit_amount, apr and profit. User records include is_resubmit, is_claimed, amount and lp_token_amount. APIs show indexed state; before depositing or claiming check the relevant on-chain period and user state. No pool deposit/withdraw HTTP endpoint substitutes for the user's contract transaction.
+Fund list entries include pool, p_id, token_address, name, start_time, end_time, lock_end_time, min_deposit_amount, fundraising_amount, deposit_amount, apr, profit, room_pool_size, and (for running main-pool periods) `current_loss_amount` and `hardtop_amount` in raw pool-token units. `/client/foundpool/total` also returns `pool_amount` (current USDT main-pool water level, raw 6 decimals), `room_pool_size` (raw 6 decimals), `der_mint_rate` (DER/USDT display string), `queue_debt` (USDT display string), and `queue_count`. User records include is_resubmit, is_claimed, amount and lp_token_amount. APIs show indexed state; before depositing or claiming check the relevant on-chain period and user state. No pool deposit/withdraw HTTP endpoint substitutes for the user's contract transaction.
 
 ## Rooms
 
@@ -133,8 +155,8 @@ GET `/client/invite_return/v2/` paths `apply_agent_status`, `user_info`, `user_i
 
 Use [client-action.js](actions.md#signed-client-api-actions) for these signed mutations:
 
-- POST `/client/invite_return/v2/apply_agent`: account, username (≤20 chars), country (≤20), nonempty unique platforms, nonempty profiles (`link`, `follower_count`), optional image_ids, plan_to_promote_dw, joined_similar_affiliate_name, and signature. Sign exactly `Apply to become affiliate` with EIP-191.
-- POST `/client/invite_return/v2/set_return_rate`: account (parent), return_rate (0..10000), signature, optional invitee. Sign exactly `Confirm the rebate ratio` with EIP-191. The server validates referral hierarchy; signing does not grant authority over unrelated accounts.
+- POST `/client/invite_return/v2/apply_agent`: account, username (≤20 chars), country (≤20), nonempty unique platforms, nonempty profiles (`link`, `follower_count`), optional image_ids, plan_to_promote_dw, joined_similar_affiliate_name, and signature. Sign exactly `Apply to become affiliate` with EIP-191. Subject to the server's invite-write maintenance gate (`RequireInviteWriteEnabled`).
+- POST `/client/invite_return/v2/set_return_rate`: account (parent), return_rate (0..10000), signature, optional invitee. Sign exactly `Confirm the rebate ratio` with EIP-191. The server validates referral hierarchy and the invite-write maintenance gate; signing does not grant authority over unrelated accounts.
 - POST `/client/supernovaplus/create_relationship`: for signed DER+ referral binding, use `{type:2,invitee_address,invitation_code,sign}`. Sign exactly `I agree to use this code <invitation_code> as my DER+ Point referrer` with EIP-191, substituting the chosen code. This requires an active campaign and a valid user-chosen referrer. It is separate from the on-chain trading referral code. Do not fabricate a referrer or treat type 1 (generate an invitation link) as a read.
 
 Signatures for these fixed texts do not bind every HTTP field. Do not log or reuse them for a new action, and show the intended fields before signing. If the task is a query, never submit any of these writes.

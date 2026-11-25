@@ -28,8 +28,8 @@ Use a current token address from `/client/coins`, exact decimal amounts, and an 
 
 ## Workflows
 
-- [Client APIs](references/api.md): markets, portfolios, orders, pools, rooms, referrals and challenges.
-- [Trading and contract reads](references/contracts.md): positions, limit orders, cancellations and token balances.
+- [Client APIs](references/api.md): markets, calendar, buyback overview, platform statistics, trading mining records, portfolios, orders, pools, rooms, referrals and challenges.
+- [Trading and contract reads](references/contracts.md): positions, limit orders, cancellations, buyback/trading-mining/PnL-cap/liquidation-buffer reads and token balances.
 - [Wallet and signed client actions](references/actions.md): fund, Meme, room, referral and application commands.
 - [Rooms](references/room.md): application, creation, reopening, liquidity and lifecycle controls.
 - [Edge Hour](references/edge-hour.md): challenges, virtual positions, rewards and LP vault operations.

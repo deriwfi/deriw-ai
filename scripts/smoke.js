@@ -11,9 +11,11 @@ async function main() {
   try {
     provider = await R.providerFor(config);
     await check('block', () => provider.getBlockNumber());
+    const optional = ['DER', 'BuybackTransfer', 'TradingMining', 'LiquidateBuffer', 'CalculatePNL', 'StockMarket']
+      .filter(name => Boolean(config.contracts[name]));
     const contracts = process.argv.includes('--all-contracts')
       ? Object.keys(config.contracts).filter(name => !['pool', 'UserL2ToL3Router'].includes(name))
-      : ['USDT', 'Vault', 'Router', 'PositionRouter', 'OrderBook', 'PriceOracle', 'PoolDataV2', 'FundRouterV2', 'MemeFactory', 'MemeData', 'MemeRouter', 'UserL3ToL2Router'];
+      : ['USDT', 'Vault', 'VaultUtils', 'Router', 'PositionRouter', 'OrderBook', 'PriceOracle', 'PoolDataV2', 'FundRouterV2', 'MemeFactory', 'MemeData', 'MemeRouter', 'UserL3ToL2Router', ...optional];
     for (const name of contracts) {
       await check(`bytecode:${name}`, async () => {
         const code = await provider.getCode(R.contractAddress(config, name));
@@ -31,8 +33,9 @@ async function main() {
     });
     for (const [route, params] of [
       ['/client/coin_infos', {}], ['/client/prices', { name: ['BTC', 'ETH'] }],
-      ['/client/foundpool/lists', { status: 1 }], ['/client/memepool/lists', {}],
-      ['/client/edge_hour/templates', {}],
+      ['/client/foundpool/lists', { status: 1 }], ['/client/foundpool/total', {}],
+      ['/client/memepool/lists', {}], ['/client/edge_hour/templates', {}],
+      ['/client/buyback/overview', {}], ['/client/statistics/overview', {}],
     ]) await check(route, async () => {
       const result = await R.api(config, 'GET', route, params);
       return { code: result.code, count: (result.data?.list || result.data)?.length ?? null };
@@ -44,6 +47,24 @@ async function main() {
       if (!block) throw new Error('Latest block is unavailable');
       const ageSeconds = R.validateQuote(max, min, updated, block.timestamp);
       return { max, min, updated, blockTime: block.timestamp, ageSeconds };
+    });
+    if (config.contracts.BuybackTransfer) await check('buyback:tier', async () => {
+      const bt = await R.checkedContract(config, 'BuybackTransfer', provider);
+      const usdt = R.contractAddress(config, 'USDT');
+      const [vault, waterLevel, currentTier] = await Promise.all([
+        bt.vault(), bt.getH(usdt), bt.getCurrentTier(usdt),
+      ]);
+      if (R.address(vault) !== R.contractAddress(config, 'Vault')) throw new Error('BuybackTransfer Vault mismatch');
+      return { waterLevel, currentTier };
+    });
+    if (config.contracts.TradingMining) await check('mining:snapshot', async () => {
+      const tm = await R.checkedContract(config, 'TradingMining', provider);
+      const usdt = R.contractAddress(config, 'USDT');
+      const [vault, miningEnabled, snapshot] = await Promise.all([
+        tm.vault(), tm.miningEnabled(), tm.getWaterLevelSnapshot(usdt),
+      ]);
+      if (R.address(vault) !== R.contractAddress(config, 'Vault')) throw new Error('TradingMining Vault mismatch');
+      return { miningEnabled, lp: snapshot[0], effectiveH: snapshot[1], rate: snapshot[2], zone: snapshot[3] };
     });
   } catch (e) { checks.push({ name: 'network', ok: false, error: e.shortMessage || e.message }); }
   finally { provider?.destroy(); }

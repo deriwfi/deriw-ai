@@ -348,6 +348,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "calculatePNL",
+    "outputs": [
+      {
+        "internalType": "contract ICalculatePNL",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -708,7 +721,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -837,6 +850,30 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      }
+    ],
+    "name": "getIndexTokenLongShortValue",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "longValue",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "shortValue",
+        "type": "int256"
       }
     ],
     "stateMutability": "view",
@@ -1571,6 +1608,42 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_indexToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_collateralToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "recordActualLoss",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_calculatePNL",
+        "type": "address"
+      }
+    ],
+    "name": "setCalculatePNL",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

@@ -35,25 +35,6 @@
       {
         "indexed": false,
         "internalType": "address",
-        "name": "indexToken",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "finalSlipCap",
-        "type": "uint256"
-      }
-    ],
-    "name": "SetChannelFinalslipcap",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
         "name": "poolTargetToken",
         "type": "address"
       },
@@ -114,6 +95,44 @@
       }
     ],
     "name": "SetDiscountFactor",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "finalSlipCap",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetFinalslipcap",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "indexToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isSet",
+        "type": "bool"
+      }
+    ],
+    "name": "SetFinalslipcapFlag",
     "type": "event"
   },
   {
@@ -297,7 +316,7 @@
         "type": "tuple[]"
       }
     ],
-    "name": "batchSetChannelFinalslipcap",
+    "name": "batchSetFinalslipcap",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -305,20 +324,14 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "address[]",
+        "name": "_indexTokens",
+        "type": "address[]"
       }
     ],
-    "name": "channelIndexTokenTofinalSlipCap",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "batchSetFinalslipcapFlag",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -707,6 +720,25 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "indexTokenTofinalSlipCap",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "initialize",
     "outputs": [],
@@ -753,7 +785,7 @@
         "type": "address"
       }
     ],
-    "name": "isSetChannelFinalslipcap",
+    "name": "isSetFinalslipcap",
     "outputs": [
       {
         "internalType": "bool",
