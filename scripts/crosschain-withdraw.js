@@ -3,6 +3,9 @@ const R = require('./lib/runtime');
 async function main() {
   const [amountString, receiverArg] = process.argv.slice(2).filter(x => x !== '--send');
   const send = process.argv.includes('--send'), config = R.network();
+  if (!amountString) throw new Error('Usage: crosschain-withdraw.js <USDT> [receiver] [--send]');
+  if (send) R.assertWriteNetwork();
+  if (!send && !process.env.DERIW_ACCOUNT) throw new Error('Set DERIW_ACCOUNT for withdrawal preview');
   const provider = await R.providerFor(config);
   try {
     const router = await R.checkedContract(config, 'UserL3ToL2Router', provider);
@@ -20,11 +23,11 @@ async function main() {
     const message = { transactionType: 'Withdraw USDT', from: account, token: usdt, l2Token,
       destination: receiver, amount: value, deadline: BigInt(Math.floor(Date.now() / 1000) + 600), chain };
     const [fee, netAmount] = await router.getValue(usdt, value);
+    if (netAmount <= 0n) throw new Error('Withdrawal amount must exceed bridge token fee');
     const digest = await router.hashData(await router.hashDomain(domain), await router.hashMessage(message));
     R.print({ network: config.name, domain, message, netAmount, tokenFee: fee, digest,
       approval: { token: usdt, spender: router.target, amount: value }, mode: send ? 'send' : 'preview' });
     if (!send) return;
-    R.assertWriteNetwork();
     const signature = R.ethers.Signature.from(wallet.signingKey.sign(digest)).serialized;
     const [recovered] = await router.getSignatureUser(domain, message, signature);
     if (R.address(recovered) !== R.address(account)) throw new Error('Signature recovery failed');

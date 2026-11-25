@@ -6,6 +6,8 @@ async function main() {
   const [amountString, quoteFile] = process.argv.slice(2).filter(x => x !== '--send');
   const send = process.argv.includes('--send'), selected = R.network();
   if (!quoteFile) throw new Error('Usage: crosschain-deposit.js <USDT> <quote.json> [--send]');
+  if (send) R.assertWriteNetwork();
+  if (!send && !process.env.DERIW_ACCOUNT) throw new Error('Set DERIW_ACCOUNT for deposit preview');
   const config = sourceConfig(selected);
   const quote = JSON.parse(fs.readFileSync(quoteFile, 'utf8'));
   const provider = await R.providerFor(config);

@@ -19,17 +19,21 @@ async function main() {
   if (atIndex !== -1) {
     target = R.address(args[atIndex + 1]);
     args.splice(atIndex, 2);
+    if (args.includes('--at')) throw new Error('Specify --at at most once');
   }
   const [name, method, json = '[]'] = args.filter(x => x !== '--send');
+  if (!name || !method) throw new Error('Usage: contract-call.js <Contract> <method> [argsJson] [--at 0xADDRESS] [--send]');
   const config = R.network();
   const iface = new R.ethers.Interface(R.abi(name));
   const fragment = iface.getFunction(method);
   if (!fragment) throw new Error('Method is absent from bundled ABI');
   const params = JSON.parse(json);
+  if (!Array.isArray(params)) throw new Error('Arguments JSON must be an array');
   const read = ['view', 'pure'].includes(fragment.stateMutability);
   if (target && !read) throw new Error('--at is available only for public reads');
   if (!read && !isUserWrite(name, fragment.name)) throw new Error('Write is not in the user allowlist; use the documented operation script');
   if (name === 'UserL2ToL3Router') throw new Error('L2 router requires the separate bridge network workflow');
+  if (send && !read) R.assertWriteNetwork();
   const provider = await R.providerFor(config);
   try {
     if (read) {

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const R = require('../lib/runtime');
 async function main() {
-  const mode = process.argv[2];
+  const argv = process.argv.slice(2), send = argv.includes('--send');
+  const [mode] = argv.filter(x => x !== '--send');
   if (!['1', '2'].includes(mode)) throw new Error('Usage: pre-create.js <1|2> [--send]');
   const config = R.network(), text = 'Apply to become a host';
-  if (!process.argv.includes('--send')) return R.print({ network: config.name, api: config.apiBase,
+  if (!send) return R.print({ network: config.name, api: config.apiBase,
     route: '/client/room/pre-create', capacity_base_mode: Number(mode), signMessage: text, mode: 'preview' });
   R.assertWriteNetwork();
   const provider = await R.providerFor(config);

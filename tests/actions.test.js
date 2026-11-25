@@ -57,6 +57,10 @@ test('fund, room and referral plans encode the intended public methods and exact
     assert.equal(iface.parseTransaction({ data: iface.encodeFunctionData(plan.method, plan.args) }).name, method);
   }
   await assert.rejects(userPlan('fund-batch-claim', [pool, '["1","1"]'], c, {}), /distinct/);
+  await assert.rejects(userPlan('fund-batch-claim', [pool, '{}'], c, {}), /nonempty array/);
+  await assert.rejects(userPlan('fund-batch-claim', [pool], c, {}), /nonempty array/);
+  await assert.rejects(userPlan('room-block', [], c, {}), /nonempty trader/);
+  await assert.rejects(userPlan('meme-claim', [pool, 'all'], c, {}), /DERIW_ACCOUNT/);
 });
 
 test('Meme deposits reject pools absent from the current factory before approving funds', async () => {

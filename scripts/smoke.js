@@ -60,10 +60,13 @@ async function main() {
     if (config.contracts.TradingMining) await check('mining:snapshot', async () => {
       const tm = await R.checkedContract(config, 'TradingMining', provider);
       const usdt = R.contractAddress(config, 'USDT');
-      const [vault, miningEnabled, snapshot] = await Promise.all([
-        tm.vault(), tm.miningEnabled(), tm.getWaterLevelSnapshot(usdt),
+      const [vault, derToken, miningEnabled, snapshot] = await Promise.all([
+        tm.vault(), tm.derToken(), tm.miningEnabled(), tm.getWaterLevelSnapshot(usdt),
       ]);
       if (R.address(vault) !== R.contractAddress(config, 'Vault')) throw new Error('TradingMining Vault mismatch');
+      if (config.contracts.DER && R.address(derToken) !== R.contractAddress(config, 'DER')) {
+        throw new Error('TradingMining DER token mismatch');
+      }
       return { miningEnabled, lp: snapshot[0], effectiveH: snapshot[1], rate: snapshot[2], zone: snapshot[3] };
     });
   } catch (e) { checks.push({ name: 'network', ok: false, error: e.shortMessage || e.message }); }

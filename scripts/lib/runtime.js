@@ -33,6 +33,7 @@ function bool(value) {
 }
 const abiAliases = { USDT: 'IERC20', DER: 'IERC20' };
 function abi(name) {
+  if (typeof name !== 'string' || !name) throw new Error('Invalid ABI name');
   const resolved = abiAliases[name] || name;
   if (!/^[A-Za-z0-9_/-]+$/.test(resolved)) throw new Error('Invalid ABI name');
   const data = require(path.join(__dirname, '../../assets', `${resolved}.json`));
@@ -208,16 +209,26 @@ async function api(config, method, route, params = {}) {
       '/client/invite_return/v2/apply_agent', '/client/invite_return/v2/set_return_rate',
       '/client/supernovaplus/create_relationship', '/client/edge_hour/challenge/claim'].includes(route);
   if (!allowed) throw new Error('Route/method is outside the reviewed client API surface');
+  if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('API parameters must be a JSON object');
   const url = new URL(route, config.apiBase);
   if (method === 'GET') for (const [k, v] of Object.entries(params)) {
-    for (const value of Array.isArray(v) ? v : [v]) url.searchParams.append(k, String(value));
+    if (v === undefined || v === null) continue;
+    for (const value of Array.isArray(v) ? v : [v]) {
+      if (value === undefined || value === null) continue;
+      url.searchParams.append(k, String(value));
+    }
   }
   const response = await fetch(url, { method, redirect: 'error', signal: AbortSignal.timeout(15000),
     headers: { 'Content-Type': 'application/json' },
     ...(method === 'POST' ? { body: JSON.stringify(params) } : {}) });
   let json;
   try { json = await response.json(); }
-  catch { throw new Error(`HTTP ${response.status} with non-JSON response for ${route}`); }
+  catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      throw new Error(`Request timed out for ${route}`);
+    }
+    throw new Error(`HTTP ${response.status} with non-JSON response for ${route}`);
+  }
   if (!response.ok) throw new Error(`HTTP ${response.status} for ${route}, code=${json.code ?? 'unknown'}, msg=${json.msg || ''}`);
   if (json.code !== 0) throw new Error(`Client API code=${json.code}, msg=${json.msg || ''}`);
   return json;

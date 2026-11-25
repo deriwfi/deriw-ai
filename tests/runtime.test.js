@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const R = require('../scripts/lib/runtime');
 const { tradingPlan } = require('../scripts/lib/operations');
 const { isUserWrite, writes } = require('../scripts/contract-call');
@@ -46,6 +49,7 @@ test('limit order calldata uses Router allowance and exact margin/leverage', asy
   assert.equal(decoded._sizeDelta, R.amount('125', 30));
   assert.equal(decoded._lever, 100000n);
   assert.equal(decoded._isLong, false);
+  await assert.rejects(tradingPlan('limit-open', [token, '100', '0.001', 'true', '90000', 'true'], config, {}), /leverage rounds to zero/);
 });
 test('market plans read the current oracle, encode bounded prices and reject stale quotes', async () => {
   const config = R.network({ DERIW_NETWORK: 'dev' }), token = config.contracts.USDT;
@@ -66,6 +70,7 @@ test('market plans read the current oracle, encode bounded prices and reject sta
     assert.ok(orderIface.encodeFunctionData(plan.method, plan.args));
     const close = await tradingPlan('market-close', [token, '100', 'false'], config, provider, token);
     assert.equal(close.args[6], 10100n);
+    await assert.rejects(tradingPlan('market-close', [token, '100', 'false'], config, provider), /DERIW_ACCOUNT/);
     const collateralOnly = await tradingPlan('market-close', [token, '0', 'true', '1'], config, provider, token);
     assert.equal(collateralOnly.args[3], 0n);
     assert.equal(collateralOnly.args[2], R.amount('1', 30));
@@ -131,7 +136,17 @@ test('read API preserves repeated query values and false, rejects application er
       assert.equal(url.searchParams.get('is_long'), 'false');
       return { ok: true, json: async () => ({ code: 0, data: ['9007199254740993'] }) };
     };
-    assert.deepEqual((await R.api(R.network({}), 'GET', '/client/prices', { name: ['BTC', 'ETH'], is_long: false })).data, ['9007199254740993']);
+    assert.deepEqual((await R.api(R.network({}), 'GET', '/client/prices', { name: ['BTC', 'ETH', undefined, null], is_long: false, ignored: undefined, empty: null })).data, ['9007199254740993']);
+    global.fetch = async url => {
+      assert.equal(url.searchParams.has('ignored'), false);
+      assert.equal(url.searchParams.has('empty'), false);
+      assert.equal(url.searchParams.get('zero'), '0');
+      return { ok: true, json: async () => ({ code: 0, data: { path: url.pathname } }) };
+    };
+    assert.equal((await R.api(R.network({}), 'GET', '/client/coins', { ignored: undefined, empty: null, zero: 0 })).data.path, '/client/coins');
+    global.fetch = async () => ({ ok: true, json: async () => { const e = new Error('aborted'); e.name = 'TimeoutError'; throw e; } });
+    await assert.rejects(R.api(R.network({}), 'GET', '/client/coins'), /Request timed out/);
+    await assert.rejects(R.api(R.network({}), 'GET', '/client/coins', []), /JSON object/);
     global.fetch = async url => ({ ok: true, json: async () => ({ code: 0, data: { path: url.pathname } }) });
     for (const route of [
       '/client/buyback/overview', '/client/statistics/overview',
@@ -189,4 +204,67 @@ test('preview encodes a transaction without reading a key or making any RPC call
     console.log = originalLog;
     if (originalKeyFile === undefined) delete process.env.PRIVATE_KEY_FILE; else process.env.PRIVATE_KEY_FILE = originalKeyFile;
   }
+});
+test('R.abi rejects non-string names, every configured contract has a valid ABI, and addresses.md matches networks.json', () => {
+  for (const bad of [undefined, null, '', 123, '../package']) {
+    assert.throws(() => R.abi(bad), /Invalid ABI name/);
+  }
+  const md = fs.readFileSync(path.join(__dirname, '../references/addresses.md'), 'utf8');
+  const rows = {};
+  for (const line of md.split('\n')) {
+    const m = line.match(/^\| ([^|]+) \| ([^|]+) \| ([^|]+) \| ([^|]+) \|$/);
+    if (!m || ['Contract', 'Network', 'dev', 'test', 'mainnet'].includes(m[1].trim()) || m[1].startsWith('---')) continue;
+    const clean = s => s.trim().replace(/^`|`$/g, '');
+    rows[m[1].trim()] = { dev: clean(m[2]), test: clean(m[3]), mainnet: clean(m[4]) };
+  }
+  const allKeys = new Set([...Object.keys(rows), ...Object.values(R.networks).flatMap(n => Object.keys(n.contracts))]);
+  for (const key of allKeys) {
+    if (key !== 'pool') assert.ok(Array.isArray(R.abi(key)), `ABI missing for ${key}`);
+    for (const net of ['dev', 'test', 'mainnet']) {
+      assert.equal(rows[key]?.[net], R.networks[net].contracts[key] || '—', `addresses.md mismatch for ${key} on ${net}`);
+    }
+  }
+});
+test('CLI scripts fail cleanly on missing/malformed args and enforce explicit network before touching keys', () => {
+  const runCli = (script, args, extraEnv = {}) => {
+    const env = { ...process.env, ...extraEnv };
+    delete env.DERIW_NETWORK; delete env.DEV; delete env.PRIVATE_KEY; delete env.PRIVATE_KEY_FILE; delete env.DERIW_ACCOUNT;
+    Object.assign(env, extraEnv);
+    return spawnSync(process.execPath, [path.join(__dirname, '..', script), ...args], { env, encoding: 'utf8' });
+  };
+  let res = runCli('scripts/contract-call.js', []);
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Usage: contract-call\.js/);
+
+  res = runCli('scripts/contract-call.js', ['Vault', 'getPosition', '{}']);
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /must be an array/);
+
+  res = runCli('scripts/token-state.js', ['0x12530882c64B1c22dAdf2F60639145029c5081Da', 'Vault']);
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Expected a 20-byte hex address/);
+
+  res = runCli('scripts/api-query.js', []);
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Usage: api-query\.js/);
+
+  res = runCli('scripts/crosschain-withdraw.js', []);
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Usage: crosschain-withdraw\.js/);
+
+  res = runCli('scripts/crosschain-withdraw.js', ['10', '--send'], { PRIVATE_KEY_FILE: '/nonexistent/key' });
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Select DERIW_NETWORK explicitly/);
+
+  res = runCli('scripts/crosschain-deposit.js', ['10', 'quote.json', '--send'], { PRIVATE_KEY_FILE: '/nonexistent/key' });
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Select DERIW_NETWORK explicitly/);
+
+  res = runCli('scripts/cancel-order.js', ['increase', '0', '--send'], { PRIVATE_KEY_FILE: '/nonexistent/key' });
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Select DERIW_NETWORK explicitly/);
+
+  res = runCli('scripts/room/pre-create.js', ['--send', '1'], { PRIVATE_KEY_FILE: '/nonexistent/key' });
+  assert.notEqual(res.status, 0);
+  assert.match(res.stderr, /Select DERIW_NETWORK explicitly/);
 });

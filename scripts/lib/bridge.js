@@ -40,6 +40,7 @@ async function quoteDeposit(selected, parent, child, account, amountString) {
     'function calculateRetryableSubmissionFee(uint256,uint256) view returns(uint256)', 'function bridge() view returns(address)',
   ], parent);
   const tokenFee = type === 1n ? await router.getFee(token, amount) : 0n;
+  if (amount <= tokenFee) throw new Error('Deposit amount must exceed bridge token fee');
   const calldata = await gateway.getOutboundCalldata(token, router.target, account, amount - tokenFee, '0x');
   const node = new R.ethers.Contract('0x00000000000000000000000000000000000000C8', [
     'function estimateRetryableTicket(address,uint256,address,uint256,address,address,bytes)',

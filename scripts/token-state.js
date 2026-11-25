@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 const R = require('./lib/runtime');
+const tokenShortcuts = new Set(['USDT', 'DER', 'GLP', 'LpToken']);
 async function main() {
   const [accountArg, tokenArg, spenderArg] = process.argv.slice(2);
+  if (!accountArg) throw new Error('Usage: token-state.js <account> [0xTOKEN|USDT|DER|GLP|LpToken] [spender]');
   const account = R.address(accountArg), config = R.network();
   const token = tokenArg
-    ? (config.contracts[tokenArg] ? R.contractAddress(config, tokenArg) : R.address(tokenArg))
+    ? (tokenShortcuts.has(tokenArg) ? R.contractAddress(config, tokenArg) : R.address(tokenArg))
     : R.contractAddress(config, 'USDT');
   const spender = spenderArg ? R.address(spenderArg) : null;
   const provider = await R.providerFor(config);

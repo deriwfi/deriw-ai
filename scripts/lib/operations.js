@@ -36,12 +36,15 @@ async function tradingPlan(action, args, config, provider, account) {
       plan.method = 'createIncreasePosition';
       plan.args = [[usdt], token, margin, size, isLong, acceptable, ethers.ZeroHash, ethers.ZeroAddress];
     } else {
+      if (!account) throw new Error('Set DERIW_ACCOUNT for market-close preview');
       plan.method = 'createDecreasePosition';
       plan.args = [[usdt], token, collateral, size, isLong, address(account), acceptable, ethers.ZeroAddress];
     }
   } else if (open) {
+    const lever = size * 10000n / (margin * 10n ** 24n);
+    if (lever === 0n) throw new Error('Limit order leverage rounds to zero');
     plan.method = 'createIncreaseOrder';
-    plan.args = [[usdt], margin, token, size, usdt, isLong, trigger, above, size * 10000n / (margin * 10n ** 24n)];
+    plan.args = [[usdt], margin, token, size, usdt, isLong, trigger, above, lever];
   } else {
     plan.method = 'createDecreaseOrder';
     plan.args = [token, size, usdt, collateral, isLong, trigger, above, 10000n];
@@ -67,7 +70,8 @@ async function edgePlan(action, args, config, provider, account) {
     const erc20 = await contract(config, 'IERC20', provider, token);
     const decimals = Number(await erc20.decimals());
     const value = args[0] === 'all' && action === 'lpvault-withdraw'
-      ? await lp.maxWithdraw(address(account)) : amount(args[0], decimals);
+      ? (account ? await lp.maxWithdraw(address(account)) : (() => { throw new Error('Set DERIW_ACCOUNT for lpvault-withdraw all preview'); })())
+      : amount(args[0], decimals);
     if (value <= 0n) throw new Error('No assets to withdraw');
     const deposit = action === 'lpvault-deposit';
     if (account && deposit && !await lp.whitelist(address(account))) throw new Error('Account is not in LPVault whitelist');

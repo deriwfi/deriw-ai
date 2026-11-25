@@ -48,6 +48,7 @@ async function main() {
           bt.vault(), bt.buybackPool(), bt.insuranceFund(), bt.mainPool(),
           bt.getH(usdt), bt.getCurrentTier(usdt), bt.getDivertRates(usdt), bt.getTiers(usdt),
         ]);
+        if (R.address(vault) !== R.contractAddress(config, 'Vault')) throw new Error('BuybackTransfer Vault mismatch');
         const usdtContract = await R.checkedContract(config, 'USDT', provider);
         const buybackPoolUsdt = buybackPool !== R.ethers.ZeroAddress ? await usdtContract.balanceOf(buybackPool) : 0n;
         return {
@@ -88,6 +89,10 @@ async function main() {
           tm.vault(), tm.derToken(), tm.miningEnabled(), tm.getWaterLevelSnapshot(usdt),
           tm.getQueueConfig(usdt), tm.getMinHoldTime(usdt), tm.getCurveParams(usdt),
         ]);
+        if (R.address(vault) !== R.contractAddress(config, 'Vault')) throw new Error('TradingMining Vault mismatch');
+        if (config.contracts.DER && R.address(derToken) !== R.contractAddress(config, 'DER')) {
+          throw new Error('TradingMining DER token mismatch');
+        }
         return {
           address: tm.target,
           vault,
@@ -154,6 +159,8 @@ async function main() {
   }
 
   R.print(out);
+  const failed = [...Object.values(out.api), ...Object.values(out.onchain)].some(item => item && item.ok === false);
+  if (failed) process.exitCode = 1;
 }
 
 main().catch(R.fail);

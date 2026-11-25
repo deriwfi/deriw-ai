@@ -8,8 +8,16 @@ async function userPlan(action, args, config, provider, account) {
   if (action === 'fund-deposit') return fundDeposit(args, config, provider);
   if (['fund-claim', 'fund-batch-claim', 'fund-resubmit'].includes(action)) {
     const pool = R.address(args[0]);
-    const ids = action === 'fund-batch-claim' ? JSON.parse(args[1]).map(x => R.uint(x)) : R.uint(args[1]);
-    if (Array.isArray(ids) && (!ids.length || new Set(ids.map(String)).size !== ids.length)) throw new Error('Provide distinct period IDs');
+    let ids;
+    if (action === 'fund-batch-claim') {
+      if (!args[1]) throw new Error('Provide a nonempty array of distinct period IDs');
+      const parsed = JSON.parse(args[1]);
+      if (!Array.isArray(parsed) || !parsed.length) throw new Error('Provide a nonempty array of distinct period IDs');
+      ids = parsed.map(x => R.uint(x));
+      if (new Set(ids.map(String)).size !== ids.length) throw new Error('Provide distinct period IDs');
+    } else {
+      ids = R.uint(args[1]);
+    }
     return { contract: 'FundRouterV2', method: { 'fund-claim': 'claim', 'fund-batch-claim': 'batchClaim', 'fund-resubmit': 'setIsResubmit' }[action],
       args: action === 'fund-resubmit' ? [pool, ids, R.bool(args[2])] : [pool, ids] };
   }
@@ -20,6 +28,7 @@ async function userPlan(action, args, config, provider, account) {
     return { contract: 'MemeRouter', method: 'deposit', args: [pool, value], approval: memeApproval(value) };
   }
   if (action === 'meme-claim') {
+    if (!account) throw new Error('Set DERIW_ACCOUNT for meme-claim preview');
     const pool = R.address(args[0]), data = await R.checkedContract(config, 'MemeData', provider);
     const state = await data.getMemeState(pool), user = await data.getMemeUserInfo(pool, R.address(account));
     const available = state.isStake ? user.glpAmount : user.depositAmount;
@@ -51,6 +60,7 @@ async function userPlan(action, args, config, provider, account) {
   const roomMethods = { 'room-close': 'setChannelPoolCloseCurrTime', 'room-cancel-close': 'cancelChannelPoolCloseTime', 'room-freeze': 'setChannelPoolFreezeNow' };
   if (roomMethods[action]) return { contract: 'MemeFactory', method: roomMethods[action], args: [] };
   if (action === 'room-block' || action === 'room-unblock') {
+    if (!args[0]) throw new Error('Provide a nonempty trader address array');
     const traders = JSON.parse(args[0]);
     if (!Array.isArray(traders) || !traders.length) throw new Error('Provide a nonempty trader address array');
     return { contract: 'MemeFactory', method: 'batchSetBlacklist', args: [traders.map(R.address), action === 'room-block'] };

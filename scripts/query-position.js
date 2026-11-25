@@ -2,6 +2,9 @@
 const R = require('./lib/runtime');
 async function main() {
   const [account, indexToken, direction] = process.argv.slice(2);
+  if (!account || !indexToken || direction === undefined) {
+    throw new Error('Usage: query-position.js <account> <indexToken> <true|false>');
+  }
   const config = R.network();
   const args = [R.address(account), R.contractAddress(config, 'USDT'), R.address(indexToken), R.bool(direction)];
   const provider = await R.providerFor(config);

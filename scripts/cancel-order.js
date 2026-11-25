@@ -27,6 +27,7 @@ async function main() {
   const [type, id] = argv.filter(x => x !== '--send');
   const plan = cancelPlan(type, id);
   const config = R.network();
+  if (send) R.assertWriteNetwork();
   const provider = await R.providerFor(config);
   try {
     if (send && (plan.method === 'cancelIncreasePosition' || plan.method === 'cancelDecreasePosition')) {
